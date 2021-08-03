@@ -230,7 +230,7 @@ class Results:
 
 def get_results(type):
     """Collects and returns the similarity results for MPL circuit tests."""
-    result_type = f"mpl/{type}" if type == ("circuit" or "graph") else type
+    result_type = type if type == "latex" else f"mpl/{type}"
     result_files_circuit = []
     for file in os.listdir(os.path.join(SWD, result_type)):
         if file.endswith(".png") and not file.endswith(".diff.png"):
