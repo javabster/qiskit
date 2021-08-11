@@ -27,11 +27,8 @@ from .expectation_value_result import ExpectationValueResult
 class ExpectationValue(ExpectationValueBase):
     def _preprocessing(self):
         # circuit transpilation
-        if self._backend is not None:
-            transpiled_circuit = transpile(self._state, self._backend)  # TODO: option
-            # TODO: final layout
-        else:
-            transpiled_circuit = self._state
+        transpiled_circuit = transpile(self._state, self._backend)  # TODO: option
+        # TODO: final layout
 
         circuits = []
         metadata = []
@@ -57,7 +54,7 @@ class ExpectationValue(ExpectationValueBase):
 
         for dat, meta in zip(data, metadata):
             basis = meta.get("basis", None)
-            diagonal = pauli_diagonal(basis) if basis is not None else None
+            diagonal = self._pauli_diagonal(basis) if basis is not None else None
             coeff = meta.get("coeff", 1)
             qubits = meta.get("qubits", None)
 
@@ -85,11 +82,10 @@ class ExpectationValue(ExpectationValueBase):
         mitigator: Optional = None,
         mitigator_qubits: Optional[List[int]] = None,
     ) -> Tuple[float, float]:
-        # mitigator
-        # if mitigator is not None:
-        #    return mitigator.expectation_value(
-        #        counts, diagonal=diagonal, clbits=clbits, qubits=mitigator_qubits
-        #    )
+        if mitigator is not None:
+            return mitigator.expectation_value(
+                counts, diagonal=diagonal, clbits=clbits, qubits=mitigator_qubits
+            )
 
         # Marginalize counts
         if clbits is not None:
@@ -132,24 +128,25 @@ class ExpectationValue(ExpectationValueBase):
         return expval, variance
 
 
-def pauli_diagonal(pauli: str) -> np.ndarray:
-    """Return diagonal for given Pauli.
+    @staticmethod
+    def _pauli_diagonal(pauli: str) -> np.ndarray:
+        """Return diagonal for given Pauli.
 
-    Args:
-        pauli: a pauli string.
+        Args:
+            pauli: a pauli string.
 
-    Returns:
-        np.ndarray: The diagonal vector for converting the Pauli basis
-                    measurement into an expectation value.
-    """
-    if pauli[0] in ["+", "-"]:
-        pauli = pauli[1:]
+        Returns:
+            np.ndarray: The diagonal vector for converting the Pauli basis
+                        measurement into an expectation value.
+        """
+        if pauli[0] in ["+", "-"]:
+            pauli = pauli[1:]
 
-    diag = np.array([1])
-    for i in reversed(pauli):
-        if i == "I":
-            tmp = np.array([1, 1])
-        else:
-            tmp = np.array([1, -1])
-        diag = np.kron(tmp, diag)
-    return diag
+        diag = np.array([1])
+        for i in reversed(pauli):
+            if i == "I":
+                tmp = np.array([1, 1])
+            else:
+                tmp = np.array([1, -1])
+            diag = np.kron(tmp, diag)
+        return diag

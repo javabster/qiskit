@@ -39,32 +39,9 @@ class ExpectationValueBase(EvaluatorBase, ABC):
         backend: Backend,
     ):
         """ """
-
         super().__init__(backend)
-
-        # Set state
-        if isinstance(state, QuantumCircuit):
-            self._state = state
-        else:
-            state = Statevector(state)
-            self._state = QuantumCircuit(state.num_qubits)
-            self._state.initialize(state.data, list(range(state.num_qubits)))
-
-        # Set observable
-        if isinstance(observable, PauliSumOp):
-            if isinstance(observable.coeff, ParameterExpression):
-                raise TypeError(
-                    f"observable must have numerical coefficient, not {type(observable.coeff)}"
-                )
-            self._observable = observable.coeff * observable.primitive
-        elif isinstance(observable, SparsePauliOp):
-            self._observable = observable
-        elif isinstance(observable, BaseOperator):
-            self._observable = SparsePauliOp.from_operator(observable)
-        else:
-            raise TypeError(f"Unrecognized observable {type(observable)}")
-
-        # preprocessing
+        self._state = self._init_state(state)
+        self._observable = self._init_observable(observable)
         self._meas_circuits, self._metadata = self._preprocessing()
 
     @property
@@ -77,6 +54,34 @@ class ExpectationValueBase(EvaluatorBase, ABC):
         """ """
         return self._observable
 
+    @property
+    def evaluated_circuits(self) -> List[QuantumCircuit]:
+        return self._meas_circuits
+
+    @staticmethod
+    def _init_state(state) -> QuantumCircuit:
+        if isinstance(state, QuantumCircuit):
+            return state
+        statevector = Statevector(state)
+        qc = QuantumCircuit(statevector.num_qubits)
+        qc.initialize(state.data, list(range(statevector.num_qubits)))
+        return qc
+
+    @staticmethod
+    def _init_observable(observable) -> SparsePauliOp:
+        if isinstance(observable, PauliSumOp):
+            if isinstance(observable.coeff, ParameterExpression):
+                raise TypeError(
+                    f"observable must have numerical coefficient, not {type(observable.coeff)}"
+                )
+            return observable.coeff * observable.primitive
+        if isinstance(observable, SparsePauliOp):
+            return observable
+        if isinstance(observable, BaseOperator):
+            return SparsePauliOp.from_operator(observable)
+
+        raise TypeError(f"Unrecognized observable {type(observable)}")
+
     @abstractmethod
     def _preprocessing(self) -> Tuple[List[QuantumCircuit], List[dict]]:
         """ """
@@ -86,8 +91,11 @@ class ExpectationValueBase(EvaluatorBase, ABC):
         """ """
 
     def evaluate(
-        self, parameters: Optional[Union[List[float], np.ndarray]]
+        self, parameters: Optional[Union[List[float], np.ndarray]] = None
     ) -> ExpectationValueResult:
-        binded_circuits = [circ.bind_parameters(parameters) for circ in self._meas_circuits]
-        result = self._backend.run(binded_circuits).result()
+
+        if parameters is not None:
+            bound_circuits = [circ.bind_parameters(parameters) for circ in self._meas_circuits]
+
+        result = self._backend.run(bound_circuits).result()
         return self._postprocessing(result)
