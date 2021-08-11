@@ -37,12 +37,14 @@ class BaseExpectationValue(BaseEvaluator, ABC):
         state: Union[QuantumCircuit, Statevector],
         observable: Union[BaseOperator, PauliSumOp],
         backend: Backend,
+        mitigator=None,
     ):
         """ """
         super().__init__(backend)
         self._state = self._init_state(state)
         self._observable = self._init_observable(observable)
         self._meas_circuits, self._metadata = self._preprocessing()
+        self._mitigator = mitigator
 
     @property
     def state(self):

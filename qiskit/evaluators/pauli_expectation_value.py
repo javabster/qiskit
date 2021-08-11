@@ -46,32 +46,34 @@ class PauliExpectationValue(BaseExpectationValue):
         return circuits, metadata
 
     def _postprocessing(self, result):
-        data = result.get_counts()
+        counts = result.get_counts()
+        data = counts if isinstance(counts, list) else [counts]
         metadata = self._metadata
 
         combined_expval = 0.0
         combined_variance = 0.0
+        combined_stderr = 0.0
 
         for dat, meta in zip(data, metadata):
             basis = meta.get("basis", None)
             diagonal = self._pauli_diagonal(basis) if basis is not None else None
             coeff = meta.get("coeff", 1)
             qubits = meta.get("qubits", None)
+            shots = sum(dat.values())
 
             # Compute expval component
             expval, var = self._expval_with_variance(
-                dat,
-                diagonal=diagonal,  # mitigator=mitigator, mitigator_qubits=qubits
+                dat, diagonal=diagonal, mitigator=self._mitigator, mitigator_qubits=qubits
             )
             # Accumulate
             combined_expval += expval * coeff
             combined_variance += var * coeff ** 2
+            combined_stderr += np.sqrt(max(var * coeff ** 2 / shots, 0.0))
 
-        combined_stddev = np.sqrt(max(combined_variance, 0.0))
         return ExpectationValueResult(
             np.array(combined_expval),
             np.array(combined_variance),
-            [(combined_expval - combined_stddev, combined_expval + combined_stddev)],
+            [(combined_expval - combined_stderr, combined_expval + combined_stderr)],
         )
 
     @staticmethod
@@ -114,7 +116,7 @@ class PauliExpectationValue(BaseExpectationValue):
             sq_expval = np.sum(probs)
         else:
             sq_expval = (coeffs ** 2).dot(probs)
-        variance = (sq_expval - expval ** 2) / shots
+        variance = sq_expval - expval ** 2
 
         # Compute standard deviation
         if variance < 0:
