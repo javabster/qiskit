@@ -25,11 +25,11 @@ from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Result
 
-from .evaluator_base import EvaluatorBase
+from .base_evaluator import BaseEvaluator
 from .expectation_value_result import ExpectationValueResult
 
 
-class ExpectationValueBase(EvaluatorBase, ABC):
+class BaseExpectationValue(BaseEvaluator, ABC):
     """ """
 
     def __init__(
@@ -96,6 +96,8 @@ class ExpectationValueBase(EvaluatorBase, ABC):
 
         if parameters is not None:
             bound_circuits = [circ.bind_parameters(parameters) for circ in self._meas_circuits]
+            result = self._backend.run(bound_circuits).result()
+        else:
+            result = self._backend.run(self._meas_circuits).result()
 
-        result = self._backend.run(bound_circuits).result()
         return self._postprocessing(result)

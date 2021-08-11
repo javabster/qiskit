@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.providers import BackendV1 as Backend
 
 
-class EvaluatorBase(ABC):
+class BaseEvaluator(ABC):
     def __init__(self, backend=Optional[Backend]):
         self._backend = backend
 

@@ -20,11 +20,11 @@ import numpy as np
 from qiskit import transpile
 from qiskit.result import Counts
 
-from .expectation_value_base import ExpectationValueBase
+from .base_expectation_value import BaseExpectationValue
 from .expectation_value_result import ExpectationValueResult
 
 
-class ExpectationValue(ExpectationValueBase):
+class PauliExpectationValue(BaseExpectationValue):
     def _preprocessing(self):
         # circuit transpilation
         transpiled_circuit = transpile(self._state, self._backend)  # TODO: option
@@ -126,7 +126,6 @@ class ExpectationValue(ExpectationValueBase):
                 )
             variance = 0.0
         return expval, variance
-
 
     @staticmethod
     def _pauli_diagonal(pauli: str) -> np.ndarray:
