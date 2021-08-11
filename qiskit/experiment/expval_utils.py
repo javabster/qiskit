@@ -26,11 +26,13 @@ from qiskit.ignis.numba import jit_fallback
 logger = logging.getLogger(__name__)
 
 
-def expectation_value(counts: Counts,
-                      diagonal: Optional[np.ndarray] = None,
-                      clbits: Optional[List[int]] = None,
-                      mitigator: Optional = None,
-                      mitigator_qubits: Optional[List[int]] = None) -> Tuple[float, float]:
+def expectation_value(
+    counts: Counts,
+    diagonal: Optional[np.ndarray] = None,
+    clbits: Optional[List[int]] = None,
+    mitigator: Optional = None,
+    mitigator_qubits: Optional[List[int]] = None,
+) -> Tuple[float, float]:
     r"""Compute the expectation value of a diagonal operator from counts.
 
     Args:
@@ -45,11 +47,13 @@ def expectation_value(counts: Counts,
     Returns:
         (float, float): the expectation value and standard deviation.
     """
-    expval, var = _expval_with_variance(counts,
-                                        diagonal=diagonal,
-                                        clbits=clbits,
-                                        mitigator=mitigator,
-                                        mitigator_qubits=mitigator_qubits)
+    expval, var = _expval_with_variance(
+        counts,
+        diagonal=diagonal,
+        clbits=clbits,
+        mitigator=mitigator,
+        mitigator_qubits=mitigator_qubits,
+    )
     return expval, np.sqrt(var)
 
 
@@ -63,12 +67,12 @@ def pauli_diagonal(pauli: str) -> np.ndarray:
         np.ndarray: The diagonal vector for converting the Pauli basis
                     measurement into an expectation value.
     """
-    if pauli[0] in ['+', '-']:
+    if pauli[0] in ["+", "-"]:
         pauli = pauli[1:]
 
     diag = np.array([1])
     for i in reversed(pauli):
-        if i == 'I':
+        if i == "I":
             tmp = np.array([1, 1])
         else:
             tmp = np.array([1, -1])
@@ -76,11 +80,13 @@ def pauli_diagonal(pauli: str) -> np.ndarray:
     return diag
 
 
-def _expval_with_variance(counts: Counts,
-                          diagonal: Optional[np.ndarray] = None,
-                          clbits: Optional[List[int]] = None,
-                          mitigator: Optional = None,
-                          mitigator_qubits: Optional[List[int]] = None) -> Tuple[float, float]:
+def _expval_with_variance(
+    counts: Counts,
+    diagonal: Optional[np.ndarray] = None,
+    clbits: Optional[List[int]] = None,
+    mitigator: Optional = None,
+    mitigator_qubits: Optional[List[int]] = None,
+) -> Tuple[float, float]:
     r"""Compute the expectation value of a diagonal operator from counts.
 
     Args:
@@ -98,7 +104,8 @@ def _expval_with_variance(counts: Counts,
     if mitigator is not None:
         # Use mitigator expectation value method
         return mitigator.expectation_value(
-            counts, diagonal=diagonal, clbits=clbits, qubits=mitigator_qubits)
+            counts, diagonal=diagonal, clbits=clbits, qubits=mitigator_qubits
+        )
 
     # Marginalize counts
     if clbits is not None:
@@ -111,8 +118,9 @@ def _expval_with_variance(counts: Counts,
 
     # Get diagonal operator coefficients
     if diagonal is None:
-        coeffs = np.array([(-1) ** (key.count('1') % 2)
-                           for key in counts.keys()], dtype=probs.dtype)
+        coeffs = np.array(
+            [(-1) ** (key.count("1") % 2) for key in counts.keys()], dtype=probs.dtype
+        )
     else:
         keys = [int(key, 2) for key in counts.keys()]
         coeffs = np.asarray(diagonal[keys], dtype=probs.dtype)
@@ -132,7 +140,9 @@ def _expval_with_variance(counts: Counts,
     if variance < 0:
         if not np.isclose(variance, 0):
             logger.warning(
-                'Encountered a negative variance in expectation value calculation.'
-                '(%f). Setting standard deviation of result to 0.', variance)
+                "Encountered a negative variance in expectation value calculation."
+                "(%f). Setting standard deviation of result to 0.",
+                variance,
+            )
         variance = 0.0
     return expval, variance

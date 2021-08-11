@@ -24,8 +24,9 @@ from qiskit.quantum_info import SparsePauliOp, Operator
 from .expval_utils import _expval_with_variance, pauli_diagonal
 
 
-def pauli_generator(observable: Union[SparsePauliOp, Operator]) -> Tuple[
-        List[QuantumCircuit], List[Dict[str, any]]]:
+def pauli_generator(
+    observable: Union[SparsePauliOp, Operator]
+) -> Tuple[List[QuantumCircuit], List[Dict[str, any]]]:
     """Measurement circuit generator for Pauli basis measurements."""
     if isinstance(observable, SparsePauliOp):
         pauli_op = observable
@@ -38,40 +39,37 @@ def pauli_generator(observable: Union[SparsePauliOp, Operator]) -> Tuple[
         # Create measurement circuit
         circuit = QuantumCircuit(len(pauli))
         for i, val in enumerate(reversed(pauli)):
-            if val == 'Y':
+            if val == "Y":
                 circuit.sdg(i)
-            if val in ['Y', 'X']:
+            if val in ["Y", "X"]:
                 circuit.h(i)
         circuit.measure_all()
         circuits.append(circuit)
 
         # Create metadata dict
-        metadata.append({'basis': pauli, 'coeff': coeff})
+        metadata.append({"basis": pauli, "coeff": coeff})
     return circuits, metadata
 
 
-def pauli_analyzer(data: List[Counts],
-                   metadata: List[Dict[str, any]],
-                   mitigator: Optional = None):
+def pauli_analyzer(data: List[Counts], metadata: List[Dict[str, any]], mitigator: Optional = None):
     """Fit expectation value from weighted sum of Pauli operators."""
     combined_expval = 0.0
     combined_variance = 0.0
 
     for dat, meta in zip(data, metadata):
-        basis = meta.get('basis', None)
+        basis = meta.get("basis", None)
         diagonal = pauli_diagonal(basis) if basis is not None else None
-        coeff = _format_coeff(meta.get('coeff', 1))
-        qubits = meta.get('qubits', None)
+        coeff = _format_coeff(meta.get("coeff", 1))
+        qubits = meta.get("qubits", None)
 
         # Compute expval component
-        expval, var = _expval_with_variance(dat,
-                                            diagonal=diagonal,
-                                            mitigator=mitigator,
-                                            mitigator_qubits=qubits)
+        expval, var = _expval_with_variance(
+            dat, diagonal=diagonal, mitigator=mitigator, mitigator_qubits=qubits
+        )
         # Accumulate
         combined_expval += expval * coeff
         combined_variance += var * coeff ** 2
-    combined_stddev = np.sqrt(max(combined_variance, 0.))
+    combined_stddev = np.sqrt(max(combined_variance, 0.0))
     return combined_expval, combined_stddev
 
 

@@ -25,8 +25,9 @@ from qiskit.quantum_info import SparsePauliOp, Operator
 logger = logging.getLogger(__name__)
 
 
-def snapshot_generator(observable: Union[SparsePauliOp, Operator]) -> Tuple[
-        List[QuantumCircuit], List[Dict[str, any]]]:
+def snapshot_generator(
+    observable: Union[SparsePauliOp, Operator]
+) -> Tuple[List[QuantumCircuit], List[Dict[str, any]]]:
     """Circuit generator for expectation value snapshots."""
     if isinstance(observable, SparsePauliOp):
         pauli_op = observable
@@ -44,21 +45,22 @@ def snapshot_generator(observable: Union[SparsePauliOp, Operator]) -> Tuple[
     qubits = list(range(num_qubits))
 
     circuit = QuantumCircuit(num_qubits)
-    circuit.snapshot('expval', snapshot_type='expectation_value_pauli',
-                     qubits=qubits, params=params)
-    circuit.snapshot('sq_expval', snapshot_type='expectation_value_pauli',
-                     qubits=qubits, params=params_sq)
+    circuit.snapshot(
+        "expval", snapshot_type="expectation_value_pauli", qubits=qubits, params=params
+    )
+    circuit.snapshot(
+        "sq_expval", snapshot_type="expectation_value_pauli", qubits=qubits, params=params_sq
+    )
 
     return [circuit], [{}]
 
 
-def snapshot_analyzer(data: List[Dict],
-                      metadata: List[Dict[str, any]],
-                      mitigator: Optional = None):
+def snapshot_analyzer(data: List[Dict], metadata: List[Dict[str, any]], mitigator: Optional = None):
     """Fit expectation value from snapshots."""
     if mitigator is not None:
-        logger.warning('Error mitigation cannot be used with the snapshot'
-                       ' expectation value method.')
+        logger.warning(
+            "Error mitigation cannot be used with the snapshot" " expectation value method."
+        )
 
     if len(data) != 1:
         raise QiskitError("Invalid list of data")
@@ -66,11 +68,11 @@ def snapshot_analyzer(data: List[Dict],
     snapshots = data[0]
     meta = metadata[0]
 
-    if 'expval' not in snapshots or 'sq_expval' not in snapshots:
+    if "expval" not in snapshots or "sq_expval" not in snapshots:
         raise QiskitError("Snapshot keys missing from snapshot dict.")
 
-    expval = snapshots['expval'][0]['value']
-    sq_expval = snapshots['sq_expval'][0]['value']
+    expval = snapshots["expval"][0]["value"]
+    sq_expval = snapshots["sq_expval"][0]["value"]
 
     # Convert to real if imaginary part is zero
     if np.isclose(expval.imag, 0):
@@ -82,10 +84,10 @@ def snapshot_analyzer(data: List[Dict],
     variance = sq_expval - expval ** 2
 
     # Get shots
-    if 'shots' in meta:
-        shots = meta['shots']
+    if "shots" in meta:
+        shots = meta["shots"]
     else:
-        shots = snapshots.get('shots', 1)
+        shots = snapshots.get("shots", 1)
 
     stderror = np.sqrt(variance / shots)
 

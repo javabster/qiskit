@@ -27,10 +27,10 @@ logger = logging.getLogger(__name__)
 
 class Analysis(ABC):
     """Base experiment result analysis class."""
-    def __init__(self,
-                 experiment: str,
-                 data: Optional[any] = None,
-                 metadata: Optional[Dict[str, any]] = None):
+
+    def __init__(
+        self, experiment: str, data: Optional[any] = None, metadata: Optional[Dict[str, any]] = None
+    ):
         """Initialize the fitter"""
         # Experiment
         self._experiment = experiment
@@ -52,10 +52,7 @@ class Analysis(ABC):
         self._results_data_size = []
 
     @abstractmethod
-    def _analyze(self,
-                 data: List[any],
-                 metadata: List[Dict[str, any]],
-                 **params) -> any:
+    def _analyze(self, data: List[any], metadata: List[Dict[str, any]], **params) -> any:
         """Run analysis of data"""
         # This should run the fitter and return the result
         # If the is no metadta, return None for metadata
@@ -88,14 +85,15 @@ class Analysis(ABC):
         if self._results:
             if self._unprocessed_data:
                 logger.warning(
-                    'ExperimentResult contains unprocessed data. Use `analyze` '
-                    'to re-run analysis with all data.')
+                    "ExperimentResult contains unprocessed data. Use `analyze` "
+                    "to re-run analysis with all data."
+                )
             return self._results[-1]
         raise QiskitError("No analysis results are stored. Use `analyze` method.")
 
-    def add_data(self,
-                 data: Union[BaseJob, Result, any],
-                 metadata: Optional[Dict[str, any]] = None):
+    def add_data(
+        self, data: Union[BaseJob, Result, any], metadata: Optional[Dict[str, any]] = None
+    ):
         """Add additional data to the fitter.
 
         Args:
@@ -109,14 +107,14 @@ class Analysis(ABC):
         if isinstance(data, Result):
             # Extract metadata from result object if not provided
             if metadata is None:
-                if not hasattr(data.header, 'metadata'):
+                if not hasattr(data.header, "metadata"):
                     raise QiskitError("Experiment is missing metadata.")
                 metadata = data.header.metadata
             # Get data from result
             new_data = []
             new_meta = []
             for i, meta in enumerate(metadata):
-                if meta.get('experiment') == self._experiment:
+                if meta.get("experiment") == self._experiment:
                     new_data.append(self._filter_data(data, i))
                     new_meta.append(meta)
         else:
@@ -162,8 +160,8 @@ class Analysis(ABC):
 
     def result_data(self, i):
         """Return the list of data use for fitting a result"""
-        return self._exp_data[:self._results_data_size[i]]
+        return self._exp_data[: self._results_data_size[i]]
 
     def result_metadata(self, i):
         """Return the list of metadata use for fitting a result"""
-        return self._exp_metadata[:self._results_data_size[i]]
+        return self._exp_metadata[: self._results_data_size[i]]

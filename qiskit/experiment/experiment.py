@@ -52,43 +52,39 @@ class Experiment(ABC):
         """Return the number of qubits for this experiment."""
         return self._num_qubits
 
-    def execute(self,
-                backend: BaseBackend,
-                qubits: Optional[List[int]] = None,
-                **kwargs,
-                ) -> BaseJob:
+    def execute(
+        self,
+        backend: BaseBackend,
+        qubits: Optional[List[int]] = None,
+        **kwargs,
+    ) -> BaseJob:
         """Execute the experiment on a backend.
-​
-        TODO: Add transpiler, schedule, assembler options for backend here
+        ​
+                TODO: Add transpiler, schedule, assembler options for backend here
 
-        Args:
-            backend: backend to run experiment on.
-            qubits: Optional, apply the N-qubit calibration circuits to
-                    these device qubits.
-            kwargs: kwargs for assemble method.
-​
-        Returns:
-            BaseJob: the experiment job.
+                Args:
+                    backend: backend to run experiment on.
+                    qubits: Optional, apply the N-qubit calibration circuits to
+                            these device qubits.
+                    kwargs: kwargs for assemble method.
+        ​
+                Returns:
+                    BaseJob: the experiment job.
         """
         if qubits or backend:
             initial_layout = qubits
         else:
             initial_layout = None
-        circuits = transpile(self.circuits(),
-                             backend=backend,
-                             initial_layout=initial_layout)
+        circuits = transpile(self.circuits(), backend=backend, initial_layout=initial_layout)
         if qubits is None:
             metadata = self.metadata()
         else:
             metadata = []
             for meta in self.metadata:
                 new_meta = meta.copy()
-                new_meta['qubits'] = qubits
+                new_meta["qubits"] = qubits
             metadata.append(new_meta)
-        qobj = assemble(circuits,
-                        backend=backend,
-                        qobj_header={'metadata': metadata},
-                        **kwargs)
+        qobj = assemble(circuits, backend=backend, qobj_header={"metadata": metadata}, **kwargs)
         job = backend.run(qobj)
         self._jobs.append(job)
         return job
@@ -100,4 +96,3 @@ class Experiment(ABC):
     @abstractmethod
     def metadata(self) -> List[dict]:
         """Generate a list of experiment metadata dicts."""
-

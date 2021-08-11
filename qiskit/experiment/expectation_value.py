@@ -31,11 +31,13 @@ class ExpectationValue(Experiment):
     """Expectation value experiment."""
 
     # pylint: disable=arguments-differ
-    def __init__(self,
-                 observable: BaseOperator,
-                 method: Union[str, Callable] = 'Pauli',
-                 initial_state: Optional[Union[QuantumCircuit, Statevector]] = None,
-                 qubits: Optional[List[int]] = None):
+    def __init__(
+        self,
+        observable: BaseOperator,
+        method: Union[str, Callable] = "Pauli",
+        initial_state: Optional[Union[QuantumCircuit, Statevector]] = None,
+        qubits: Optional[List[int]] = None,
+    ):
         """Initialize expectation value experiment.
 
         Args:
@@ -66,9 +68,9 @@ class ExpectationValue(Experiment):
         # Method selection
         if not isinstance(method, str):
             generator = method
-        elif method == 'Pauli':
+        elif method == "Pauli":
             generator = pauli_generator
-        elif method == 'snapshot':
+        elif method == "snapshot":
             generator = snapshot_generator
         else:
             raise QiskitError("Unrecognized ExpectationValue method: {}".format(method))
@@ -78,9 +80,7 @@ class ExpectationValue(Experiment):
         super().__init__(self._meas_circuits[0].num_qubits)
 
         # Add metadata to base metadata
-        base_meta = {'experiment': 'expval',
-                     'qubits': None,
-                     'method': str(method)}
+        base_meta = {"experiment": "expval", "qubits": None, "method": str(method)}
         for meta in metadata:
             new_meta = base_meta.copy()
             for key, val in meta.items():
@@ -94,9 +94,9 @@ class ExpectationValue(Experiment):
         if initial_state is not None:
             self.set_initial_state(initial_state, qubits=qubits)
 
-    def set_initial_state(self,
-                          initial_state: Union[QuantumCircuit, Statevector],
-                          qubits: Optional[List[int]] = None):
+    def set_initial_state(
+        self, initial_state: Union[QuantumCircuit, Statevector], qubits: Optional[List[int]] = None
+    ):
         """Set initial state for the expectation value.
 
         Args:
@@ -132,11 +132,13 @@ class ExpectationValue(Experiment):
         Raises:
             QiskitError: if the number of qubits does not match the observable."""
         if qubits is not None and len(qubits) != self._op.num_qubits:
-            raise QiskitError('Number of qubits does not match operator '
-                              '{} != {}'.format(len(qubits), self._op.num_qubits))
+            raise QiskitError(
+                "Number of qubits does not match operator "
+                "{} != {}".format(len(qubits), self._op.num_qubits)
+            )
         self._qubits = qubits
         for meta in self._metadata:
-            meta['qubits'] = qubits
+            meta["qubits"] = qubits
 
     def circuits(self) -> List[QuantumCircuit]:
         """Generate a list of experiment circuits."""
@@ -159,11 +161,13 @@ class ExpectationValueAnalysis(Analysis):
     """Expectation value experiment analysis."""
 
     # pylint: disable=arguments-differ
-    def __init__(self,
-                 data: Optional[any] = None,
-                 metadata: Optional[Dict[str, any]] = None,
-                 method: Optional[Union[str, Callable]] = 'Pauli',
-                 mitigator: Optional = None):
+    def __init__(
+        self,
+        data: Optional[any] = None,
+        metadata: Optional[Dict[str, any]] = None,
+        method: Optional[Union[str, Callable]] = "Pauli",
+        mitigator: Optional = None,
+    ):
         """Initialize expectation value experiment.
 
         Args:
@@ -196,20 +200,19 @@ class ExpectationValueAnalysis(Analysis):
         # Set analyze function for method
         if not isinstance(method, str):
             self._method = method
-        elif method == 'Pauli':
+        elif method == "Pauli":
             self._method = pauli_analyzer
-        elif method == 'snapshot':
+        elif method == "snapshot":
             self._method = snapshot_analyzer
         else:
             raise QiskitError("Unrecognized ExpectationValue method: {}".format(method))
 
         # Base Experiment Result class
-        super().__init__('expval', data=data, metadata=metadata)
+        super().__init__("expval", data=data, metadata=metadata)
 
-    def _analyze(self,
-                 data: List[Counts],
-                 metadata: List[Dict[str, any]],
-                 mitigator: Optional = None):
+    def _analyze(
+        self, data: List[Counts], metadata: List[Dict[str, any]], mitigator: Optional = None
+    ):
         """Fit and return the Mitigator object from the calibration data."""
         if mitigator is None:
             mitigator = self._mitigator
@@ -219,8 +222,8 @@ class ExpectationValueAnalysis(Analysis):
         """Filter the required data from a Result.data dict"""
         if self._method == snapshot_analyzer:
             # For snapshots we don't use counts
-            snapshots = data.data(index).get('snapshots', {}).get('expectation_value', {})
-            snapshots['shots'] = data.results[index].shots
+            snapshots = data.data(index).get("snapshots", {}).get("expectation_value", {})
+            snapshots["shots"] = data.results[index].shots
             return snapshots
         # Otherwise we return counts
         return super()._filter_data(data, index)
