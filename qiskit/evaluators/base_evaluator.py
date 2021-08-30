@@ -12,18 +12,40 @@
 """
 Evaluator class base class
 """
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import numpy as np
 
 from qiskit.providers import BackendV1 as Backend
+from qiskit.providers import Options
+
+from .results.base_result import BaseResult
 
 
 class BaseEvaluator(ABC):
-    def __init__(self, backend=Optional[Backend]):
+    _default_run_options = Options()
+
+    def __init__(self, backend: Backend):
         self._backend = backend
+        self._run_options = self._default_run_options
+
+    @property
+    def run_options(self) -> Options:
+        """Return options values for the evaluator."""
+        return self._run_options
+
+    def set_run_options(self, **fields) -> BaseEvaluator:
+        """Set options values for the evaluator.
+
+        Args:
+            fields: The fields to update the options
+        """
+        self._run_options.update_options(**fields)
+        return self
 
     @abstractmethod
-    def evaluate(self, params: Optional[Union[List[float], np.ndarray]]):
+    def evaluate(self, parameters: Optional[Union[list[float], np.ndarray]], **kwargs) -> BaseResult:
         NotImplemented

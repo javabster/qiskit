@@ -10,23 +10,14 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Expectation value result class
+Fidelity
 """
-
-from dataclasses import dataclass
-from typing import List, Tuple
-
-import numpy as np
+from .base_evaluator import BaseEvaluator
 
 
-@dataclass(frozen=True)
-class ExpectationValueResult:
-    """
-    Result of ExpectationValue
-    #TODO doc
-    """
+class Fidelity(BaseEvaluator):
+    def __init__(self, state1, state2, backend):
+        pass
 
-    value: np.ndarray
-    variance: np.ndarray
-    confidence_interval: List[Tuple[float, float]]
-    # metadata: Metadata
+    def evaluate(self, parameters):
+        pass
