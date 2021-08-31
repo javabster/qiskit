@@ -17,7 +17,6 @@ from .base_processing import BaseProcessing
 
 
 class BasePostprocessing(BaseProcessing, ABC):
-
     @abstractmethod
     def execute(self, *args, **kwargs):
         NotImplemented

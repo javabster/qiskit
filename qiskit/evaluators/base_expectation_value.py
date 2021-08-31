@@ -33,6 +33,7 @@ from .base_evaluator import BaseEvaluator
 from .processings.base_postprocessing import BasePostprocessing
 from .processings.expectation_preprocessing import ExpectationPreprocessing
 from .results.expectation_value_result import ExpectationValueResult
+from .backends import BaseBackendWrapper, ShotBackendWrapper
 
 
 class BaseExpectationValue(BaseEvaluator, ABC):
@@ -44,8 +45,7 @@ class BaseExpectationValue(BaseEvaluator, ABC):
         postprocessing: BasePostprocessing,
         state: Union[QuantumCircuit, Statevector],
         observable: Union[BaseOperator, PauliSumOp],
-        backend: Backend,
-        mitigator=None,
+        backend: Union[Backend, BaseBackendWrapper, ShotBackendWrapper],
     ):
         """ """
         super().__init__(backend)
@@ -55,7 +55,6 @@ class BaseExpectationValue(BaseEvaluator, ABC):
         self._observable = self._init_observable(observable)
         self._transpiled_circuits = None
         self._metadata = None
-        self._mitigator = mitigator
 
     @property
     def state(self):
@@ -141,8 +140,8 @@ class BaseExpectationValue(BaseEvaluator, ABC):
         # TODO: support Aer parameter bind after https://github.com/Qiskit/qiskit-aer/pull/1317
         if parameters is not None:
             bound_circuits = [circ.bind_parameters(parameters) for circ in self.transpiled_circuits]
-            result = self._backend.run(bound_circuits, **run_opts_dict).result()
+            result = self._backend.run_and_wait(bound_circuits, **run_opts_dict)
         else:
-            result = self._backend.run(self.transpiled_circuits, **run_opts_dict).result()
+            result = self._backend.run_and_wait(self.transpiled_circuits, **run_opts_dict)
 
         return self._postprocessing(result, self._metadata)

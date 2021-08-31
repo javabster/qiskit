@@ -23,13 +23,14 @@ from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 
 from .results.base_result import BaseResult
+from .backends import BaseBackendWrapper, BackendWrapper, ShotBackendWrapper
 
 
 class BaseEvaluator(ABC):
     _default_run_options = Options()
 
-    def __init__(self, backend: Backend):
-        self._backend = backend
+    def __init__(self, backend: Union[Backend, BaseBackendWrapper, ShotBackendWrapper]):
+        self._backend = BackendWrapper.from_backend(backend)
         self._run_options = self._default_run_options
 
     @property
@@ -47,5 +48,7 @@ class BaseEvaluator(ABC):
         return self
 
     @abstractmethod
-    def evaluate(self, parameters: Optional[Union[list[float], np.ndarray]], **kwargs) -> BaseResult:
+    def evaluate(
+        self, parameters: Optional[Union[list[float], np.ndarray]], **kwargs
+    ) -> BaseResult:
         NotImplemented

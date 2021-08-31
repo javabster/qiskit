@@ -31,6 +31,7 @@ from .base_expectation_value import BaseExpectationValue
 from .processings.base_postprocessing import BasePostprocessing
 from .processings.expectation_preprocessing import ExpectationPreprocessing
 from .results.expectation_value_result import ExpectationValueResult
+from .backends import ShotBackendWrapper, ReadoutErrorMitigation, Retry
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class PauliExpectationValue(BaseExpectationValue):
         self,
         state: Union[QuantumCircuit, Statevector],
         observable: Union[BaseOperator, PauliSumOp],
-        backend: Backend,
+        backend: Union[Backend, ShotBackendWrapper],
         transpile_options: Optional[dict] = None,
     ):
         super().__init__(
@@ -51,7 +52,7 @@ class PauliExpectationValue(BaseExpectationValue):
             PauliPostprocessing(),
             state=state,
             observable=observable,
-            backend=backend,
+            backend=ShotBackendWrapper.from_backend(backend),
         )
 
 
@@ -82,9 +83,8 @@ class PauliPreprocessing(ExpectationPreprocessing):
 
 
 class PauliPostprocessing(BasePostprocessing):
-    def execute(self, result, metadata: dict) -> ExpectationValueResult:
-        counts = result.get_counts()
-        data = counts if isinstance(counts, list) else [counts]
+    def execute(self, result: list[Counts], metadata: dict) -> ExpectationValueResult:
+        data = result
 
         combined_expval = 0.0
         combined_variance = 0.0
@@ -115,7 +115,7 @@ def _expval_with_variance(
     counts: Counts,
     diagonal: Optional[np.ndarray] = None,
     clbits: Optional[list[int]] = None,
-    mitigator = None,
+    mitigator=None,
     mitigator_qubits: Optional[list[int]] = None,
 ) -> tuple[float, float]:
     if mitigator is not None:

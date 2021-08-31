@@ -24,7 +24,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Counts
+from qiskit.result import Result
 
 from .base_expectation_value import BaseExpectationValue
 from .processings.base_postprocessing import BasePostprocessing
@@ -67,7 +67,7 @@ class ExactPreprocessing(ExpectationPreprocessing):
 
 
 class ExactPostprocessing(BasePostprocessing):
-    def execute(self, result, metadata) -> ExpectationValueResult:
+    def execute(self, result: Result, metadata) -> ExpectationValueResult:
         expval, variance = result.data()["expectation_value_variance"]
 
         return ExpectationValueResult(

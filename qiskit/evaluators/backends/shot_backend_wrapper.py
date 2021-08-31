@@ -22,7 +22,7 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV1
 from qiskit.result import Counts, Result
 
-from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation
+from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation, Retry
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,7 @@ class ShotBackendWrapper:
         if hasattr(config, "max_experiments"):
             self._max_experiments = config.max_experiments
         else:
-            logger.warning("no max_experiments for this backend")
+            logger.warning("no max_experiments for this backend: %s", self._backend.backend.name())
             self._max_experiments = 1
         self._num_circuits = 0
         self._num_splits = 0
@@ -59,6 +59,12 @@ class ShotBackendWrapper:
     @property
     def raw_results(self):
         return self._raw_results
+
+    @staticmethod
+    def from_backend(backend: Union[BackendV1, BaseBackendWrapper, "ShotBackendWrapper"]):
+        if isinstance(backend, (BackendV1, BaseBackendWrapper)):
+            return ShotBackendWrapper(backend)
+        return backend
 
     def _split_experiments(
         self, circuits: List[QuantumCircuit], shots: int
