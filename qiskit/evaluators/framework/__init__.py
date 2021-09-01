@@ -9,18 +9,7 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Base Processing class
-"""
-from abc import ABC, abstractmethod
 
-from qiskit.evaluators.results.base_result import BaseResult
-
-
-class BaseProcessing(ABC):
-    def __call__(self, *args, **kwargs):
-        return self.execute(*args, **kwargs)
-
-    @abstractmethod
-    def execute(self) -> BaseResult:
-        NotImplemented
+from .base_evaluator import BaseEvaluator
+from .base_postprocessing import BasePostprocessing
+from .base_preprocessing import BasePreprocessing

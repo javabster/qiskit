@@ -20,23 +20,26 @@ from typing import Optional, Union, cast
 
 import numpy as np
 
-from qiskit import QuantumCircuit, transpile
+from qiskit import ClassicalRegister, QuantumCircuit, transpile
+from qiskit.evaluators.backends import (
+    ReadoutErrorMitigation,
+    Retry,
+    ShotBackendWrapper,
+)
+from qiskit.evaluators.framework import BasePostprocessing, BasePreprocessing
+from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Counts
 
-from .base_expectation_value import BaseExpectationValue
-from .processings.base_postprocessing import BasePostprocessing
-from .processings.expectation_preprocessing import ExpectationPreprocessing
-from .results.expectation_value_result import ExpectationValueResult
-from .backends import ShotBackendWrapper, ReadoutErrorMitigation, Retry
+from .expectation_value import ExpectationValue
 
 logger = logging.getLogger(__name__)
 
 
-class PauliExpectationValue(BaseExpectationValue):
+class PauliExpectationValue(ExpectationValue):
     def __init__(
         self,
         state: Union[QuantumCircuit, Statevector],
@@ -56,7 +59,7 @@ class PauliExpectationValue(BaseExpectationValue):
         )
 
 
-class PauliPreprocessing(ExpectationPreprocessing):
+class PauliPreprocessing(BasePreprocessing):
     def execute(
         self, state: QuantumCircuit, observable: SparsePauliOp
     ) -> tuple[list[QuantumCircuit], list[dict]]:
@@ -70,12 +73,15 @@ class PauliPreprocessing(ExpectationPreprocessing):
         metadata: list[dict] = []
         for pauli, coeff in observable.label_iter():
             circuit = transpiled_circuit.copy()
+            creg = ClassicalRegister(len(pauli))
+            circuit.add_register(creg)
             for i, val in enumerate(reversed(pauli)):
                 if val == "Y":
                     circuit.sdg(i)
                 if val in ["Y", "X"]:
                     circuit.h(i)
-            circuit.measure_all()
+                circuit.measure(i, i)
+            circuit.metadata = {"basis": pauli, "coeff": coeff}
             circuits.append(circuit)
             metadata.append({"basis": pauli, "coeff": coeff})
 
@@ -114,18 +120,12 @@ class PauliPostprocessing(BasePostprocessing):
 def _expval_with_variance(
     counts: Counts,
     diagonal: Optional[np.ndarray] = None,
-    clbits: Optional[list[int]] = None,
-    mitigator=None,
-    mitigator_qubits: Optional[list[int]] = None,
+    # clbits: Optional[list[int]] = None,
 ) -> tuple[float, float]:
-    if mitigator is not None:
-        return mitigator.expectation_value(
-            counts, diagonal=diagonal, clbits=clbits, qubits=mitigator_qubits
-        )
 
     # Marginalize counts
-    if clbits is not None:
-        counts = marginal_counts(counts, meas_qubits=clbits)
+    # if clbits is not None:
+    #    counts = marginal_counts(counts, meas_qubits=clbits)
 
     # Get counts shots and probabilities
     probs = np.array(list(counts.values()))

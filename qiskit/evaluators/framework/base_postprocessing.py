@@ -10,18 +10,13 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Base Preprocessing class
+Base Postprocessing class
 """
-from __future__ import annotations
-
 from abc import ABC, abstractmethod
-
-from qiskit import QuantumCircuit
-
 from .base_processing import BaseProcessing
 
 
-class BasePreprocessing(BaseProcessing, ABC):
+class BasePostprocessing(BaseProcessing, ABC):
     @abstractmethod
-    def execute(self, *args, **kwargs) -> tuple[list[QuantumCircuit], list[dict]]:
-        pass
+    def execute(self):
+        return NotImplemented

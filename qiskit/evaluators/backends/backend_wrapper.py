@@ -20,6 +20,7 @@ from time import time
 from typing import List, Union
 
 from qiskit.circuit import QuantumCircuit
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.ignis.mitigation.measurement import (
     CompleteMeasFitter,
     TensoredMeasFitter,
@@ -27,7 +28,6 @@ from qiskit.ignis.mitigation.measurement import (
     tensored_meas_cal,
 )
 from qiskit.providers.backend import BackendV1
-from qiskit.providers.ibmq.job import IBMQJobApiError, IBMQJobFailureError, IBMQJobInvalidStateError
 from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
@@ -38,12 +38,12 @@ class BaseBackendWrapper(ABC):
     def run_and_wait(
         self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
     ) -> Result:
-        NotImplemented
+        return NotImplemented
 
     @property
     @abstractmethod
     def backend(self) -> BackendV1:
-        NotImplemented
+        return NotImplemented
 
 
 class BackendWrapper(BaseBackendWrapper):
@@ -84,6 +84,15 @@ class Retry(BaseBackendWrapper):
             - IBMQJobFailureError: If the job failed.
             - IBMQJobApiError: If an unexpected error occurred when communicating with the server.
         """
+        try:
+            from qiskit.providers.ibmq.job import IBMQJobApiError
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="qiskit-ibmq-provider",
+                name="IBMQ Provider",
+                pip_install="pip install qiskit-ibmq-provider",
+            ) from ex
+
         while True:
             try:
                 return job.result()
@@ -93,6 +102,18 @@ class Retry(BaseBackendWrapper):
     def run_and_wait(
         self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
     ) -> Result:
+        try:
+            from qiskit.providers.ibmq.job import (
+                IBMQJobFailureError,
+                IBMQJobInvalidStateError,
+            )
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="qiskit-ibmq-provider",
+                name="IBMQ Provider",
+                pip_install="pip install qiskit-ibmq-provider",
+            ) from ex
+
         while True:
             job = self._backend.run(circuits, **options)
             try:

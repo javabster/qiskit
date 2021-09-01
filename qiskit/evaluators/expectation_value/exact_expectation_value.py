@@ -20,19 +20,20 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from qiskit import QuantumCircuit, transpile
+from qiskit.evaluators.framework import BasePostprocessing, BasePreprocessing
+from qiskit.evaluators.results import ExpectationValueResult
+from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Result
+from qiskit.result import Counts, Result
+from qiskit.utils import has_aer
 
-from .base_expectation_value import BaseExpectationValue
-from .processings.base_postprocessing import BasePostprocessing
-from .processings.expectation_preprocessing import ExpectationPreprocessing
-from .results.expectation_value_result import ExpectationValueResult
+from .expectation_value import ExpectationValue
 
 
-class ExactExpectationValue(BaseExpectationValue):
+class ExactExpectationValue(ExpectationValue):
     def __init__(
         self,
         state: Union[QuantumCircuit, Statevector],
@@ -40,6 +41,11 @@ class ExactExpectationValue(BaseExpectationValue):
         backend: Backend,
         transpile_options: Optional[dict] = None,
     ):
+        if not has_aer():
+            raise MissingOptionalLibraryError(
+                libname="qiskit-aer", name="Aer provider", pip_install="pip install qiskit-aer"
+            )
+
         super().__init__(
             ExactPreprocessing(backend=backend, transpile_options=transpile_options),
             ExactPostprocessing(),
@@ -49,7 +55,7 @@ class ExactExpectationValue(BaseExpectationValue):
         )
 
 
-class ExactPreprocessing(ExpectationPreprocessing):
+class ExactPreprocessing(BasePreprocessing):
     def execute(
         self, state: QuantumCircuit, observable: SparsePauliOp
     ) -> tuple[list[QuantumCircuit], list[dict]]:

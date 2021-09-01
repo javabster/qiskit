@@ -144,7 +144,10 @@ class ShotBackendWrapper:
         counters = [Counter() for _ in range(self._num_circuits)]
         i = 0
         for result in results:
-            for count in result.get_counts():
+            counts = result.get_counts()
+            if isinstance(counts, Counts):
+                counts = [counts]
+            for count in counts:
                 counters[i % self._num_circuits].update(count)
                 i += 1
         return [Counts(c) for c in counters]

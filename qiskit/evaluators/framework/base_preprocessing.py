@@ -10,7 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Expectation Preprocessing class
+Base Preprocessing class
 """
 from __future__ import annotations
 
@@ -20,12 +20,11 @@ from typing import Optional
 from qiskit import QuantumCircuit
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
-from qiskit.quantum_info import SparsePauliOp
 
-from .base_preprocessing import BasePreprocessing
+from .base_processing import BaseProcessing
 
 
-class ExpectationPreprocessing(BasePreprocessing, ABC):
+class BasePreprocessing(BaseProcessing, ABC):
     _default_transpile_options = Options()
 
     def __init__(
@@ -43,10 +42,14 @@ class ExpectationPreprocessing(BasePreprocessing, ABC):
         """Return the transpiler options for transpiling the circuits."""
         return self._transpile_options
 
-    def set_transpile_options(self, **fields) -> ExpectationPreprocessing:
+    def set_transpile_options(self, **fields) -> BasePreprocessing:
         """Set the transpiler options for transpiler.
         Args:
             fields: The fields to update the options
         """
         self._transpile_options.update_options(**fields)
         return self
+
+    @abstractmethod
+    def execute(self, *args) -> tuple[list[QuantumCircuit], list[dict]]:
+        pass

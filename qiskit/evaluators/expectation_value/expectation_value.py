@@ -10,38 +10,38 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Expectation value base class
+Expectation value class
 """
 from __future__ import annotations
 
 import copy
-from abc import ABC, abstractmethod
 from typing import Optional, Union
 
 import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
+from qiskit.evaluators.backends import BaseBackendWrapper, ShotBackendWrapper
+from qiskit.evaluators.framework import (
+    BaseEvaluator,
+    BasePostprocessing,
+    BasePreprocessing,
+)
+from qiskit.evaluators.results import ExpectationValueResult
+from qiskit.extensions import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp, Statevector
-from qiskit.extensions import Initialize
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Result
 
-from .base_evaluator import BaseEvaluator
-from .processings.base_postprocessing import BasePostprocessing
-from .processings.expectation_preprocessing import ExpectationPreprocessing
-from .results.expectation_value_result import ExpectationValueResult
-from .backends import BaseBackendWrapper, ShotBackendWrapper
 
-
-class BaseExpectationValue(BaseEvaluator, ABC):
+class ExpectationValue(BaseEvaluator):
     """ """
 
     def __init__(
         self,
-        preprocessing: ExpectationPreprocessing,
+        preprocessing: BasePreprocessing,
         postprocessing: BasePostprocessing,
         state: Union[QuantumCircuit, Statevector],
         observable: Union[BaseOperator, PauliSumOp],
@@ -57,8 +57,12 @@ class BaseExpectationValue(BaseEvaluator, ABC):
         self._metadata = None
 
     @property
-    def state(self):
-        """ """
+    def state(self) -> QuantumCircuit:
+        """Quantum Circuit that represents quantum state.
+
+        Returns:
+            quantum state
+        """
         return self._state
 
     @state.setter
@@ -83,8 +87,9 @@ class BaseExpectationValue(BaseEvaluator, ABC):
     def transpile_options(self):
         return self._preprocessing.transpile_options
 
-    def set_transpile_options(self, **fields) -> BaseExpectationValue:
+    def set_transpile_options(self, **fields) -> ExpectationValue:
         """Set the transpiler options for transpiler.
+
         Args:
             fields: The fields to update the options
         """

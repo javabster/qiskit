@@ -10,13 +10,17 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Base Postprocessing class
+Base Processing class
 """
 from abc import ABC, abstractmethod
-from .base_processing import BaseProcessing
+
+from qiskit.evaluators.results.base_result import BaseResult
 
 
-class BasePostprocessing(BaseProcessing, ABC):
+class BaseProcessing(ABC):
+    def __call__(self, *args, **kwargs):
+        return self.execute(*args, **kwargs)
+
     @abstractmethod
-    def execute(self, *args, **kwargs):
-        NotImplemented
+    def execute(self, *args, **kwargs) -> BaseResult:
+        return NotImplemented

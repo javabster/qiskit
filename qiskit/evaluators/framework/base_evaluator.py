@@ -22,8 +22,8 @@ import numpy as np
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 
-from .results.base_result import BaseResult
-from .backends import BaseBackendWrapper, BackendWrapper, ShotBackendWrapper
+from qiskit.evaluators.results.base_result import BaseResult
+from qiskit.evaluators.backends import BaseBackendWrapper, BackendWrapper, ShotBackendWrapper
 
 
 class BaseEvaluator(ABC):
@@ -49,6 +49,6 @@ class BaseEvaluator(ABC):
 
     @abstractmethod
     def evaluate(
-        self, parameters: Optional[Union[list[float], np.ndarray]], **kwargs
+        self, parameters: Optional[Union[list[float], np.ndarray]], **run_options
     ) -> BaseResult:
-        NotImplemented
+        return NotImplemented

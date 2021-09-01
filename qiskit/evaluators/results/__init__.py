@@ -10,4 +10,4 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-from .expectation_value import ExactExpectationValue, PauliExpectationValue
+from .expectation_value_result import ExpectationValueResult
