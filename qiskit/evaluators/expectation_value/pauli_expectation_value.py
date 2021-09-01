@@ -21,11 +21,7 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, transpile
-from qiskit.evaluators.backends import (
-    ReadoutErrorMitigation,
-    Retry,
-    ShotBackendWrapper,
-)
+from qiskit.evaluators.backends import BackendWrapper, ShotBackendWrapper
 from qiskit.evaluators.framework import BasePostprocessing, BasePreprocessing
 from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.opflow import PauliSumOp
@@ -49,7 +45,7 @@ class PauliExpectationValue(ExpectationValue):
     ):
         super().__init__(
             PauliPreprocessing(
-                backend,
+                BackendWrapper.to_backend(backend),
                 transpile_options,
             ),
             PauliPostprocessing(),

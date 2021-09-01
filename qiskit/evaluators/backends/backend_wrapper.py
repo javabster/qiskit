@@ -66,6 +66,12 @@ class BackendWrapper(BaseBackendWrapper):
             return cls(backend)
         return backend
 
+    @staticmethod
+    def to_backend(backend: Union[BackendV1, BaseBackendWrapper]) -> BackendV1:
+        if isinstance(backend, BackendV1):
+            return backend
+        return backend.backend
+
 
 class Retry(BaseBackendWrapper):
     def __init__(self, backend: BackendV1):
@@ -218,4 +224,6 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
     ) -> Result:
         self._maybe_calibrate()
-        return self._backend.run_and_wait(circuits, **options)
+        result = self._backend.run_and_wait(circuits, **options)
+        self._maybe_calibrate()
+        return result
