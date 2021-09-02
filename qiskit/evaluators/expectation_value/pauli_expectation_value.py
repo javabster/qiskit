@@ -28,7 +28,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Counts
+from qiskit.result import Counts, Result
 
 from .expectation_value import ExpectationValue
 
@@ -36,6 +36,10 @@ logger = logging.getLogger(__name__)
 
 
 class PauliExpectationValue(ExpectationValue):
+    """
+    Evaluates expectaion value using pauli rotation gates.
+    """
+
     def __init__(
         self,
         state: Union[QuantumCircuit, Statevector],
@@ -56,9 +60,17 @@ class PauliExpectationValue(ExpectationValue):
 
 
 class PauliPreprocessing(BasePreprocessing):
+    """
+    Preprocessing for evaluation of expectation value using pauli rotation gates.
+    """
+
     def execute(
         self, state: QuantumCircuit, observable: SparsePauliOp
     ) -> tuple[list[QuantumCircuit], list[dict]]:
+        """
+        TODO
+        """
+
         # circuit transpilation
         transpiled_circuit: QuantumCircuit = cast(
             QuantumCircuit, transpile(state, self._backend, **self._transpile_options.__dict__)
@@ -85,7 +97,19 @@ class PauliPreprocessing(BasePreprocessing):
 
 
 class PauliPostprocessing(BasePostprocessing):
-    def execute(self, result: list[Counts], metadata: dict) -> ExpectationValueResult:
+    """
+    Postprocessing for evaluation of expectation value using pauli rotation gates.
+    """
+
+    def execute(
+        self, result: Union[list[Counts], Result], metadata: list[dict]
+    ) -> ExpectationValueResult:
+        """
+        TODO
+        """
+        if isinstance(result, Result):
+            raise TypeError()
+
         data = result
 
         combined_expval = 0.0
@@ -96,7 +120,7 @@ class PauliPostprocessing(BasePostprocessing):
             basis = meta.get("basis", None)
             diagonal = _pauli_diagonal(basis) if basis is not None else None
             coeff = meta.get("coeff", 1)
-            qubits = meta.get("qubits", None)
+            # qubits = meta.get("qubits", None)
             shots = sum(dat.values())
 
             # Compute expval component

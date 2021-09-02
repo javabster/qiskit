@@ -31,13 +31,15 @@ from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.extensions import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
+from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Result
 
 
 class ExpectationValue(BaseEvaluator):
-    """ """
+    """
+    Expectation Value class
+    """
 
     def __init__(
         self,
@@ -67,14 +69,18 @@ class ExpectationValue(BaseEvaluator):
 
     @state.setter
     def state(self, state: Union[QuantumCircuit, Statevector]):
-        """ """
         self._transpiled_circuits = None
         self._metadata = None
         self._state = self._init_state(state)
 
     @property
     def observable(self) -> SparsePauliOp:
-        """ """
+        """
+        SparsePauliOp that represents observable
+
+        Returns:
+            observable
+        """
         return self._observable
 
     @observable.setter
@@ -84,7 +90,13 @@ class ExpectationValue(BaseEvaluator):
         self._observable = self._init_observable(observable)
 
     @property
-    def transpile_options(self):
+    def transpile_options(self) -> Options:
+        """
+        Options for transpile
+
+        Returns:
+            transpile options
+        """
         return self._preprocessing.transpile_options
 
     def set_transpile_options(self, **fields) -> ExpectationValue:
@@ -92,6 +104,8 @@ class ExpectationValue(BaseEvaluator):
 
         Args:
             fields: The fields to update the options
+        Returns:
+            self
         """
         self._transpiled_circuits = None
         self._metadata = None
@@ -100,6 +114,12 @@ class ExpectationValue(BaseEvaluator):
 
     @property
     def transpiled_circuits(self) -> list[QuantumCircuit]:
+        """
+        Transpiled quantum circuits produced by preprocessing
+
+        Returns:
+            List of the transpiled quantum circuit
+        """
         if self._transpiled_circuits is None:
             self._transpiled_circuits, self._metadata = self._preprocessing(
                 self.state, self.observable

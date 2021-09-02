@@ -16,14 +16,13 @@ Base result class
 from abc import ABC
 from dataclasses import dataclass
 
-import numpy as np
-
 
 class BaseResult(ABC):
     """
     Base result class
     """
 
+    # pylint: disable=unused-argument
     def __new__(cls, *args, **kwargs):
         dataclass(cls)
         return super().__new__(cls)

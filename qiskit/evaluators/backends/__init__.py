@@ -10,5 +10,9 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""
+Backend wrapper classes
+"""
+
 from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation, Retry
 from .shot_backend_wrapper import ShotBackendWrapper

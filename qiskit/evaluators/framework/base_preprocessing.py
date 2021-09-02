@@ -20,11 +20,14 @@ from typing import Optional
 from qiskit import QuantumCircuit
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
+from qiskit.quantum_info import SparsePauliOp
 
-from .base_processing import BaseProcessing
 
+class BasePreprocessing(ABC):
+    """
+    Base class of pre processing.
+    """
 
-class BasePreprocessing(BaseProcessing, ABC):
     _default_transpile_options = Options()
 
     def __init__(
@@ -37,6 +40,9 @@ class BasePreprocessing(BaseProcessing, ABC):
         if transpile_options is not None:
             self.set_transpile_options(**transpile_options)
 
+    def __call__(self, state: QuantumCircuit, observable: SparsePauliOp):
+        return self.execute(state, observable)
+
     @property
     def transpile_options(self) -> Options:
         """Return the transpiler options for transpiling the circuits."""
@@ -46,10 +52,17 @@ class BasePreprocessing(BaseProcessing, ABC):
         """Set the transpiler options for transpiler.
         Args:
             fields: The fields to update the options
+        Returns:
+            self
         """
         self._transpile_options.update_options(**fields)
         return self
 
     @abstractmethod
-    def execute(self, *args) -> tuple[list[QuantumCircuit], list[dict]]:
-        pass
+    def execute(
+        self, state: QuantumCircuit, observable: SparsePauliOp
+    ) -> tuple[list[QuantumCircuit], list[dict]]:
+        """
+        TODO
+        """
+        return NotImplemented

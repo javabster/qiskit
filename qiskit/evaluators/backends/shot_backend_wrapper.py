@@ -13,16 +13,22 @@
 Shot Backend wrapper class
 """
 
+from __future__ import annotations
+
 import logging
 from collections import Counter
-from typing import List, Tuple, Union
+from typing import Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV1
 from qiskit.result import Counts, Result
 
-from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation, Retry
+from .backend_wrapper import (
+    BackendWrapper,
+    BaseBackendWrapper,
+    ReadoutErrorMitigation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,33 +48,67 @@ class ShotBackendWrapper:
             self._max_experiments = 1
         self._num_circuits = 0
         self._num_splits = 0
-        self._raw_results = []
+        self._raw_results: list[Result] = []
 
     @property
-    def backend(self):
+    def backend(self) -> BackendV1:
+        """
+        TODO
+
+        Returns:
+            backend
+        """
+        if isinstance(self._backend, BaseBackendWrapper):
+            return self._backend.backend
         return self._backend
 
     @property
-    def max_shots(self):
+    def max_shots(self) -> int:
+        """
+        TODO
+
+        Returns:
+            max_shots
+        """
         return self._max_shots
 
     @property
-    def max_experiments(self):
+    def max_experiments(self) -> int:
+        """
+        TODO
+
+        Returns:
+            max_experiments
+        """
         return self._max_experiments
 
     @property
-    def raw_results(self):
+    def raw_results(self) -> list[Result]:
+        """
+        TODO
+
+        Returns:
+            raw results
+        """
         return self._raw_results
 
     @staticmethod
-    def from_backend(backend: Union[BackendV1, BaseBackendWrapper, "ShotBackendWrapper"]):
+    def from_backend(
+        backend: Union[BackendV1, BaseBackendWrapper, ShotBackendWrapper]
+    ) -> ShotBackendWrapper:
+        """
+        Backend to ShotBackendWrapper
+
+        Returns:
+            wrapped backend
+        """
         if isinstance(backend, (BackendV1, BaseBackendWrapper)):
             return ShotBackendWrapper(backend)
         return backend
 
     def _split_experiments(
-        self, circuits: List[QuantumCircuit], shots: int
-    ) -> List[Tuple[List[QuantumCircuit], int]]:
+        self, circuits: list[QuantumCircuit], shots: int
+    ) -> list[tuple[list[QuantumCircuit], int]]:
         assert self._num_circuits > self._max_experiments
         ret = []
         remaining_shots = shots
@@ -85,8 +125,8 @@ class ShotBackendWrapper:
         return ret
 
     def _copy_experiments(
-        self, circuits: List[QuantumCircuit], shots: int
-    ) -> List[Tuple[List[QuantumCircuit], int]]:
+        self, circuits: list[QuantumCircuit], shots: int
+    ) -> list[tuple[list[QuantumCircuit], int]]:
         assert self._num_circuits <= self._max_experiments
         max_copies = self._max_experiments // self._num_circuits
         ret = []
@@ -112,8 +152,14 @@ class ShotBackendWrapper:
         return ret
 
     def run_and_wait(
-        self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], append: bool = False, **options
-    ) -> List[Counts]:
+        self, circuits: Union[QuantumCircuit, list[QuantumCircuit]], append: bool = False, **options
+    ) -> list[Counts]:
+        """
+        TODO
+
+        Returns:
+            list of counts
+        """
         if "shots" in options:
             shots = options["shots"]
             del options["shots"]
@@ -138,10 +184,18 @@ class ShotBackendWrapper:
             self._raw_results = results
         return self.get_counts(self._raw_results)
 
-    def get_counts(self, results: List[Result]) -> List[Counts]:
+    def get_counts(self, results: list[Result]) -> list[Counts]:
+        """
+        Convert Result to Counts
+
+        Returns:
+            list of counts
+        Raises:
+            QiskitError: if inputs are empty
+        """
         if len(results) == 0:
             raise QiskitError("Empty result")
-        counters = [Counter() for _ in range(self._num_circuits)]
+        counters: list[Counter] = [Counter() for _ in range(self._num_circuits)]
         i = 0
         for result in results:
             counts = result.get_counts()

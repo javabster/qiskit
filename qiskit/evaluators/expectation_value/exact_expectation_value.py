@@ -13,6 +13,8 @@
 Expectation value class
 """
 
+# pylint: disable=no-name-in-module, import-error
+
 from __future__ import annotations
 
 from typing import Optional, Union, cast
@@ -32,8 +34,15 @@ from qiskit.utils import has_aer
 
 from .expectation_value import ExpectationValue
 
+if has_aer():
+    from qiskit.providers.aer.library import SaveExpectationValueVariance
+
 
 class ExactExpectationValue(ExpectationValue):
+    """
+    Calculates exact expectation value exactly (without sampling error).
+    """
+
     def __init__(
         self,
         state: Union[QuantumCircuit, Statevector],
@@ -43,7 +52,9 @@ class ExactExpectationValue(ExpectationValue):
     ):
         if not has_aer():
             raise MissingOptionalLibraryError(
-                libname="qiskit-aer", name="Aer provider", pip_install="pip install qiskit-aer"
+                libname="qiskit-aer",
+                name="Aer provider",
+                pip_install="pip install qiskit-aer",
             )
 
         super().__init__(
@@ -56,6 +67,10 @@ class ExactExpectationValue(ExpectationValue):
 
 
 class ExactPreprocessing(BasePreprocessing):
+    """
+    Preprocessing for :class:`ExactExpectationValue`.
+    """
+
     def execute(
         self, state: QuantumCircuit, observable: SparsePauliOp
     ) -> tuple[list[QuantumCircuit], list[dict]]:
@@ -66,14 +81,22 @@ class ExactPreprocessing(BasePreprocessing):
         # TODO: final layout
 
         # TODO: need to check whether Aer exists or not
-        transpiled_circuit.save_expectation_value_variance(
-            operator=observable, qubits=range(transpiled_circuit.num_qubits)
-        )
+        inst = SaveExpectationValueVariance(operator=observable)
+
+        transpiled_circuit.append(inst, qargs=range(transpiled_circuit.num_qubits))
         return [transpiled_circuit], [{}]
 
 
 class ExactPostprocessing(BasePostprocessing):
-    def execute(self, result: Result, metadata) -> ExpectationValueResult:
+    """
+    Postprocessing for :class:`ExactExpectationValue`.
+    """
+
+    def execute(self, result: Union[Result, list[Counts]], metadata) -> ExpectationValueResult:
+
+        if isinstance(result, list):
+            raise TypeError(f"{self.__class__.__name__} does not support list[Counts] as an input.")
+
         expval, variance = result.data()["expectation_value_variance"]
 
         return ExpectationValueResult(

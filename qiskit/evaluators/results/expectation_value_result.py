@@ -14,11 +14,10 @@ Expectation value result class
 """
 
 from __future__ import annotations
-from dataclasses import dataclass
-
-from .base_result import BaseResult
 
 import numpy as np
+
+from .base_result import BaseResult
 
 
 class ExpectationValueResult(BaseResult):

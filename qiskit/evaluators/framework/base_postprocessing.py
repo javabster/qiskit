@@ -12,11 +12,26 @@
 """
 Base Postprocessing class
 """
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from .base_processing import BaseProcessing
+from typing import Union
+
+from qiskit.evaluators.results.base_result import BaseResult
+from qiskit.result import Counts, Result
 
 
-class BasePostprocessing(BaseProcessing, ABC):
+class BasePostprocessing(ABC):
+    """
+    Base class for postprocessing.
+    """
+
+    def __call__(self, result, metadata):
+        return self.execute(result, metadata)
+
     @abstractmethod
-    def execute(self):
+    def execute(self, result: Union[list[Counts], Result], metadata: list[dict]) -> BaseResult:
+        """
+        TODO
+        """
         return NotImplemented

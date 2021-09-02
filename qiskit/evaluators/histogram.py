@@ -10,14 +10,25 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Fidelity
+Histogram
 """
-from .base_evaluator import BaseEvaluator
+from .framework.base_evaluator import BaseEvaluator
 
 
 class Histogram(BaseEvaluator):
+    """
+    This class evaluates histogram.
+    """
+
     def __init__(self, backend):
+        """
+        TODO
+        """
+        super().__init__(backend)
         pass
 
-    def evaluate(self, parameters):
+    def evaluate(self, parameters, **run_options):
+        """
+        TODO
+        """
         pass

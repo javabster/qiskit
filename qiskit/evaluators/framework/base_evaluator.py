@@ -19,23 +19,40 @@ from typing import Optional, Union
 
 import numpy as np
 
+from qiskit.evaluators.backends import (
+    BackendWrapper,
+    BaseBackendWrapper,
+    ShotBackendWrapper,
+)
+from qiskit.evaluators.results.base_result import BaseResult
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 
-from qiskit.evaluators.results.base_result import BaseResult
-from qiskit.evaluators.backends import BaseBackendWrapper, BackendWrapper, ShotBackendWrapper
-
 
 class BaseEvaluator(ABC):
+    """
+    Base class for evaluator.
+    """
     _default_run_options = Options()
 
     def __init__(self, backend: Union[Backend, BaseBackendWrapper, ShotBackendWrapper]):
-        self._backend = BackendWrapper.from_backend(backend)
+        """
+        Args:
+            backend: backend
+        """
+        self._backend: Union[BaseBackendWrapper, ShotBackendWrapper]
+        if isinstance(backend, ShotBackendWrapper):
+            self._backend = backend
+        else:
+            self._backend = BackendWrapper.from_backend(backend)
         self._run_options = self._default_run_options
 
     @property
     def run_options(self) -> Options:
-        """Return options values for the evaluator."""
+        """Return options values for the evaluator.
+        Returns:
+            run_options
+        """
         return self._run_options
 
     def set_run_options(self, **fields) -> BaseEvaluator:
@@ -43,6 +60,8 @@ class BaseEvaluator(ABC):
 
         Args:
             fields: The fields to update the options
+        Returns:
+            self
         """
         self._run_options.update_options(**fields)
         return self
@@ -51,4 +70,7 @@ class BaseEvaluator(ABC):
     def evaluate(
         self, parameters: Optional[Union[list[float], np.ndarray]], **run_options
     ) -> BaseResult:
+        """
+        TODO
+        """
         return NotImplemented

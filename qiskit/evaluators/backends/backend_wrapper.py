@@ -34,51 +34,87 @@ logger = logging.getLogger(__name__)
 
 
 class BaseBackendWrapper(ABC):
+    """
+    TODO
+    """
     @abstractmethod
     def run_and_wait(
         self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
     ) -> Result:
+        """
+        TODO
+        """
         return NotImplemented
 
     @property
     @abstractmethod
     def backend(self) -> BackendV1:
+        """
+        TODO
+        """
         return NotImplemented
 
 
 class BackendWrapper(BaseBackendWrapper):
+    """
+    TODO
+    """
     def __init__(self, backend: BackendV1):
+        """
+        TODO
+        """
         self._backend = backend
 
     @property
     def backend(self) -> BackendV1:
+        """
+        TODO
+        """
         return self._backend
 
     def run_and_wait(
         self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
     ) -> Result:
+        """
+        TODO
+        """
         job = self._backend.run(circuits, **options)
         return job.result()
 
     @classmethod
     def from_backend(cls, backend: Union[BackendV1, BaseBackendWrapper]) -> BaseBackendWrapper:
+        """
+        TODO
+        """
         if isinstance(backend, BackendV1):
             return cls(backend)
         return backend
 
     @staticmethod
     def to_backend(backend: Union[BackendV1, BaseBackendWrapper]) -> BackendV1:
+        """
+        TODO
+        """
         if isinstance(backend, BackendV1):
             return backend
         return backend.backend
 
 
 class Retry(BaseBackendWrapper):
+    """
+    TODO
+    """
     def __init__(self, backend: BackendV1):
+        """
+        TODO
+        """
         self._backend = backend
 
     @property
     def backend(self):
+        """
+        TODO
+        """
         return self._backend
 
     @staticmethod
@@ -108,6 +144,9 @@ class Retry(BaseBackendWrapper):
     def run_and_wait(
         self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
     ) -> Result:
+        """
+        TODO
+        """
         try:
             from qiskit.providers.ibmq.job import (
                 IBMQJobFailureError,
@@ -139,6 +178,9 @@ class Retry(BaseBackendWrapper):
 
 
 class ReadoutErrorMitigation(BaseBackendWrapper):
+    """
+    TODO
+    """
     # need to move to the new mitigator class in the future
     # https://github.com/Qiskit/qiskit-terra/pull/6485
     # need to support M3 https://github.com/Qiskit-Partners/mthree
@@ -150,38 +192,59 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         shots: int,
         **cal_options,
     ):
+        """
+        TODO
+        """
         self._backend = BackendWrapper.from_backend(backend)
         self._mitigation = mitigation
         self._refresh = refresh
         self._shots = shots
         self._time_threshold = 0.0
         self._cal_options = cal_options
-        self._meas_fitter = {}
+        self._meas_fitter: dict[datetime, Union[CompleteMeasFitter, TensoredMeasFitter]] = {}
 
     @property
     def backend(self):
+        """
+        TODO
+        """
         if isinstance(self._backend, BaseBackendWrapper):
             return self._backend.backend
         return self._backend
 
     @property
     def mitigation(self):
+        """
+        TODO
+        """
         return self._mitigation
 
     @property
     def refresh(self):
+        """
+        TODO
+        """
         return self._refresh
 
     @property
     def cal_options(self):
+        """
+        TODO
+        """
         return self._cal_options
 
     @property
     def shots(self):
+        """
+        TODO
+        """
         return self._shots
 
     @staticmethod
     def _datetime(data):
+        """
+        TODO
+        """
         # Aer's result.data is str, but IBMQ's result.data is datetime
         if isinstance(data, str):
             return datetime.fromisoformat(data)
@@ -218,11 +281,17 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         return min_fitter.filter.apply(result)
 
     def apply_mitigation(self, results: List[Result]):
+        """
+        TODO
+        """
         return [self._apply_mitigation(result) for result in results]
 
     def run_and_wait(
         self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
     ) -> Result:
+        """
+        TODO
+        """
         self._maybe_calibrate()
         result = self._backend.run_and_wait(circuits, **options)
         self._maybe_calibrate()

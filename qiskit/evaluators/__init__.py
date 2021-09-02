@@ -10,4 +10,10 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""
+Evaluators (:mod:`qiskit.evaluators`)
+==========================================
+It contains evaluator primitives.
+"""
+
 from .expectation_value import ExactExpectationValue, PauliExpectationValue

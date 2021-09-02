@@ -9,6 +9,9 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""
+Framework for evaluator classes.
+"""
 
 from .base_evaluator import BaseEvaluator
 from .base_postprocessing import BasePostprocessing

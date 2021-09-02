@@ -12,12 +12,23 @@
 """
 Fidelity
 """
-from .base_evaluator import BaseEvaluator
+from .framework.base_evaluator import BaseEvaluator
 
 
 class Fidelity(BaseEvaluator):
+    """
+    The class evaluates the fidelity of two states.
+    """
+    # pylint: disable=unused-argument
     def __init__(self, state1, state2, backend):
+        """
+        TODO: write docstring
+        """
+        super().__init__(backend)
         pass
 
-    def evaluate(self, parameters):
+    def evaluate(self, parameters, **run_options):
+        """
+        TODO
+        """
         pass
