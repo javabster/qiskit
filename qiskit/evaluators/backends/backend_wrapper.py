@@ -13,33 +13,33 @@
 Backend wrapper classes
 """
 
+from __future__ import annotations
+
 import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from time import time
-from typing import List, Union
+from typing import TYPE_CHECKING, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
-from qiskit.ignis.mitigation.measurement import (
-    CompleteMeasFitter,
-    TensoredMeasFitter,
-    complete_meas_cal,
-    tensored_meas_cal,
-)
 from qiskit.providers.backend import BackendV1
 from qiskit.result import Result
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from .shot_backend_wrapper import ShotBackendWrapper
 
 
 class BaseBackendWrapper(ABC):
     """
     TODO
     """
+
     @abstractmethod
     def run_and_wait(
-        self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
+        self, circuits: Union[QuantumCircuit, list[QuantumCircuit]], **options
     ) -> Result:
         """
         TODO
@@ -59,6 +59,7 @@ class BackendWrapper(BaseBackendWrapper):
     """
     TODO
     """
+
     def __init__(self, backend: BackendV1):
         """
         TODO
@@ -73,7 +74,7 @@ class BackendWrapper(BaseBackendWrapper):
         return self._backend
 
     def run_and_wait(
-        self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
+        self, circuits: Union[QuantumCircuit, list[QuantumCircuit]], **options
     ) -> Result:
         """
         TODO
@@ -91,7 +92,7 @@ class BackendWrapper(BaseBackendWrapper):
         return backend
 
     @staticmethod
-    def to_backend(backend: Union[BackendV1, BaseBackendWrapper]) -> BackendV1:
+    def to_backend(backend: Union[BackendV1, BaseBackendWrapper, ShotBackendWrapper]) -> BackendV1:
         """
         TODO
         """
@@ -104,6 +105,7 @@ class Retry(BaseBackendWrapper):
     """
     TODO
     """
+
     def __init__(self, backend: BackendV1):
         """
         TODO
@@ -142,7 +144,7 @@ class Retry(BaseBackendWrapper):
                 logger.warning(ex.message)
 
     def run_and_wait(
-        self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
+        self, circuits: Union[QuantumCircuit, list[QuantumCircuit]], **options
     ) -> Result:
         """
         TODO
@@ -181,6 +183,7 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
     """
     TODO
     """
+
     # need to move to the new mitigator class in the future
     # https://github.com/Qiskit/qiskit-terra/pull/6485
     # need to support M3 https://github.com/Qiskit-Partners/mthree
@@ -201,6 +204,18 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         self._shots = shots
         self._time_threshold = 0.0
         self._cal_options = cal_options
+
+        try:
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter,
+                TensoredMeasFitter,
+            )
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="qiskit-ignis",
+                name="execute",
+                pip_install="pip install qiskit-ignis",
+            ) from ex
         self._meas_fitter: dict[datetime, Union[CompleteMeasFitter, TensoredMeasFitter]] = {}
 
     @property
@@ -255,8 +270,28 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         if now <= self._time_threshold:
             return
         if self._mitigation == "tensored":
+            try:
+                from qiskit.ignis.mitigation.measurement import (
+                    tensored_meas_cal,
+                )
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    libname="qiskit-ignis",
+                    name="execute",
+                    pip_install="pip install qiskit-ignis",
+                ) from ex
             meas_calibs, state_labels = tensored_meas_cal(**self._cal_options)
         elif self._mitigation == "complete":
+            try:
+                from qiskit.ignis.mitigation.measurement import (
+                    complete_meas_cal,
+                )
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    libname="qiskit-ignis",
+                    name="execute",
+                    pip_install="pip install qiskit-ignis",
+                ) from ex
             meas_calibs, state_labels = complete_meas_cal(**self._cal_options)
 
         logger.info("readout error mitigation calibration %s at %f", self._mitigation, now)
@@ -264,8 +299,28 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
 
         dt = self._datetime(cal_results.date)
         if self._mitigation == "tensored":
+            try:
+                from qiskit.ignis.mitigation.measurement import (
+                    TensoredMeasFitter,
+                )
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    libname="qiskit-ignis",
+                    name="execute",
+                    pip_install="pip install qiskit-ignis",
+                ) from ex
             self._meas_fitter[dt] = TensoredMeasFitter(cal_results, **self._cal_options)
         elif self._mitigation == "complete":
+            try:
+                from qiskit.ignis.mitigation.measurement import (
+                    CompleteMeasFitter,
+                )
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    libname="qiskit-ignis",
+                    name="execute",
+                    pip_install="pip install qiskit-ignis",
+                ) from ex
             self._meas_fitter[dt] = CompleteMeasFitter(
                 cal_results, state_labels, **self._cal_options
             )
@@ -280,14 +335,14 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         logger.info("apply mitigation data at %s", min_date)
         return min_fitter.filter.apply(result)
 
-    def apply_mitigation(self, results: List[Result]):
+    def apply_mitigation(self, results: list[Result]):
         """
         TODO
         """
         return [self._apply_mitigation(result) for result in results]
 
     def run_and_wait(
-        self, circuits: Union[QuantumCircuit, List[QuantumCircuit]], **options
+        self, circuits: Union[QuantumCircuit, list[QuantumCircuit]], **options
     ) -> Result:
         """
         TODO

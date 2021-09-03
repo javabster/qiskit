@@ -19,6 +19,7 @@ class Fidelity(BaseEvaluator):
     """
     The class evaluates the fidelity of two states.
     """
+
     # pylint: disable=unused-argument
     def __init__(self, state1, state2, backend):
         """
@@ -27,7 +28,7 @@ class Fidelity(BaseEvaluator):
         super().__init__(backend)
         pass
 
-    def evaluate(self, parameters, **run_options):
+    def evaluate(self, parameters, had_transpiled=True, **run_options):
         """
         TODO
         """

@@ -131,8 +131,8 @@ class PauliPostprocessing(BasePostprocessing):
             combined_stderr += np.sqrt(max(var * coeff ** 2 / shots, 0.0))
 
         return ExpectationValueResult(
-            np.array(combined_expval),
-            np.array(combined_variance),
+            combined_expval,
+            combined_variance,
             [(combined_expval - combined_stderr, combined_expval + combined_stderr)],
         )
 

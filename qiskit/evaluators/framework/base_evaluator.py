@@ -33,6 +33,7 @@ class BaseEvaluator(ABC):
     """
     Base class for evaluator.
     """
+
     _default_run_options = Options()
 
     def __init__(self, backend: Union[Backend, BaseBackendWrapper, ShotBackendWrapper]):
@@ -68,7 +69,10 @@ class BaseEvaluator(ABC):
 
     @abstractmethod
     def evaluate(
-        self, parameters: Optional[Union[list[float], np.ndarray]], **run_options
+        self,
+        parameters: Optional[Union[list[float], np.ndarray]],
+        had_transpiled: bool = True,
+        **run_options,
     ) -> BaseResult:
         """
         TODO

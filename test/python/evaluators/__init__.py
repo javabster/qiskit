@@ -9,22 +9,5 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-"""
-Expectation value result class
-"""
 
-from __future__ import annotations
-
-from .base_result import BaseResult
-
-
-class ExpectationValueResult(BaseResult):
-    """
-    Result of ExpectationValue
-    #TODO doc
-    """
-
-    value: float
-    variance: float
-    confidence_interval: list[tuple[float, float]]
-    # metadata: Metadata
+"""Tests for the evaluators."""

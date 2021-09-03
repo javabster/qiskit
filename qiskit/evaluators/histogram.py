@@ -27,7 +27,7 @@ class Histogram(BaseEvaluator):
         super().__init__(backend)
         pass
 
-    def evaluate(self, parameters, **run_options):
+    def evaluate(self, parameters, had_transpiled=True, **run_options):
         """
         TODO
         """

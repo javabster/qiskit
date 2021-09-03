@@ -15,25 +15,50 @@ Expectation value class
 from __future__ import annotations
 
 import copy
-from typing import Optional, Union
+import sys
+from typing import Optional, Union, cast
 
 import numpy as np
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, transpile
 from qiskit.circuit import ParameterExpression
 from qiskit.evaluators.backends import BaseBackendWrapper, ShotBackendWrapper
 from qiskit.evaluators.framework import (
     BaseEvaluator,
-    BasePostprocessing,
     BasePreprocessing,
 )
 from qiskit.evaluators.results import ExpectationValueResult
+from qiskit.exceptions import QiskitError
 from qiskit.extensions import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+from qiskit.result import Counts, Result
+
+if sys.version_info >= (3, 8):
+    from typing import Protocol
+else:
+    from typing_extensions import Protocol
+
+
+class Preprocessing(Protocol):
+    """Preprocessing Callback Protocol (PEP544)"""
+
+    def __call__(
+        self, state: QuantumCircuit, observable: SparsePauliOp
+    ) -> tuple[list[QuantumCircuit], list[dict]]:
+        ...
+
+
+class Postprocessing(Protocol):
+    """Postprocessing Callback Protocol (PEP544)"""
+
+    def __call__(
+        self, result: Union[list[Counts], Result], metadata: list[dict]
+    ) -> ExpectationValueResult:
+        ...
 
 
 class ExpectationValue(BaseEvaluator):
@@ -43,8 +68,8 @@ class ExpectationValue(BaseEvaluator):
 
     def __init__(
         self,
-        preprocessing: BasePreprocessing,
-        postprocessing: BasePostprocessing,
+        preprocessing: Preprocessing,
+        postprocessing: Postprocessing,
         state: Union[QuantumCircuit, Statevector],
         observable: Union[BaseOperator, PauliSumOp],
         backend: Union[Backend, BaseBackendWrapper, ShotBackendWrapper],
@@ -55,8 +80,8 @@ class ExpectationValue(BaseEvaluator):
         self._postprocessing = postprocessing
         self._state = self._init_state(state)
         self._observable = self._init_observable(observable)
-        self._transpiled_circuits = None
-        self._metadata = None
+        self._transpiled_circuits: Optional[list[QuantumCircuit]] = None
+        self._metadata: Optional[list[dict]] = None
 
     @property
     def state(self) -> QuantumCircuit:
@@ -96,8 +121,13 @@ class ExpectationValue(BaseEvaluator):
 
         Returns:
             transpile options
+        Raises:
+            QiskitError: if preprocessing is not BasePreprocessing
         """
-        return self._preprocessing.transpile_options
+        if isinstance(self._preprocessing, BasePreprocessing):
+            return self._preprocessing.transpile_options
+        else:
+            raise QiskitError()
 
     def set_transpile_options(self, **fields) -> ExpectationValue:
         """Set the transpiler options for transpiler.
@@ -106,11 +136,16 @@ class ExpectationValue(BaseEvaluator):
             fields: The fields to update the options
         Returns:
             self
+        Raises:
+            QiskitError: if preprocessing is not BasePreprocessing
         """
-        self._transpiled_circuits = None
-        self._metadata = None
-        self._preprocessing.set_transpile_options(**fields)
-        return self
+        if isinstance(self._preprocessing, BasePreprocessing):
+            self._transpiled_circuits = None
+            self._metadata = None
+            self._preprocessing.set_transpile_options(**fields)
+            return self
+        else:
+            raise QiskitError()
 
     @property
     def transpiled_circuits(self) -> list[QuantumCircuit]:
@@ -155,6 +190,7 @@ class ExpectationValue(BaseEvaluator):
     def evaluate(
         self,
         parameters: Optional[Union[list[float], np.ndarray]] = None,
+        had_transpiled: bool = True,
         **run_options,
     ) -> ExpectationValueResult:
 
@@ -164,9 +200,15 @@ class ExpectationValue(BaseEvaluator):
 
         # TODO: support Aer parameter bind after https://github.com/Qiskit/qiskit-aer/pull/1317
         if parameters is not None:
-            bound_circuits = [circ.bind_parameters(parameters) for circ in self.transpiled_circuits]
-            result = self._backend.run_and_wait(bound_circuits, **run_opts_dict)
+            circuits = [circ.bind_parameters(parameters) for circ in self.transpiled_circuits]
         else:
-            result = self._backend.run_and_wait(self.transpiled_circuits, **run_opts_dict)
+            circuits = self.transpiled_circuits
+
+        if not had_transpiled:
+            circuits = cast(
+                list[QuantumCircuit], transpile(circuits, **self.transpile_options.__dict__)
+            )
+
+        result = self._backend.run_and_wait(circuits, **run_opts_dict)
 
         return self._postprocessing(result, self._metadata)

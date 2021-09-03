@@ -19,8 +19,6 @@ from __future__ import annotations
 
 from typing import Optional, Union, cast
 
-import numpy as np
-
 from qiskit import QuantumCircuit, transpile
 from qiskit.evaluators.framework import BasePostprocessing, BasePreprocessing
 from qiskit.evaluators.results import ExpectationValueResult
@@ -100,7 +98,7 @@ class ExactPostprocessing(BasePostprocessing):
         expval, variance = result.data()["expectation_value_variance"]
 
         return ExpectationValueResult(
-            np.array(expval),
-            np.array(variance),
+            expval,
+            variance,
             None,
         )
