@@ -19,7 +19,7 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from time import time
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Generic, TypeVar, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -31,16 +31,16 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from .shot_backend_wrapper import ShotBackendWrapper
 
+T = TypeVar("T")
 
-class BaseBackendWrapper(ABC):
+
+class BaseBackendWrapper(ABC, Generic[T]):
     """
     TODO
     """
 
     @abstractmethod
-    def run_and_wait(
-        self, circuits: Union[QuantumCircuit, list[QuantumCircuit]], **options
-    ) -> Result:
+    def run_and_wait(self, circuits: Union[QuantumCircuit, list[QuantumCircuit]], **options) -> T:
         """
         TODO
         """
@@ -55,7 +55,7 @@ class BaseBackendWrapper(ABC):
         return NotImplemented
 
 
-class BackendWrapper(BaseBackendWrapper):
+class BackendWrapper(BaseBackendWrapper[Result]):
     """
     TODO
     """
@@ -150,10 +150,7 @@ class Retry(BaseBackendWrapper):
         TODO
         """
         try:
-            from qiskit.providers.ibmq.job import (
-                IBMQJobFailureError,
-                IBMQJobInvalidStateError,
-            )
+            from qiskit.providers.ibmq.job import IBMQJobFailureError, IBMQJobInvalidStateError
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-ibmq-provider",
@@ -206,10 +203,7 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         self._cal_options = cal_options
 
         try:
-            from qiskit.ignis.mitigation.measurement import (
-                CompleteMeasFitter,
-                TensoredMeasFitter,
-            )
+            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter, TensoredMeasFitter
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-ignis",
@@ -271,9 +265,7 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
             return
         if self._mitigation == "tensored":
             try:
-                from qiskit.ignis.mitigation.measurement import (
-                    tensored_meas_cal,
-                )
+                from qiskit.ignis.mitigation.measurement import tensored_meas_cal
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     libname="qiskit-ignis",
@@ -283,9 +275,7 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
             meas_calibs, state_labels = tensored_meas_cal(**self._cal_options)
         elif self._mitigation == "complete":
             try:
-                from qiskit.ignis.mitigation.measurement import (
-                    complete_meas_cal,
-                )
+                from qiskit.ignis.mitigation.measurement import complete_meas_cal
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     libname="qiskit-ignis",
@@ -300,9 +290,7 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         dt = self._datetime(cal_results.date)
         if self._mitigation == "tensored":
             try:
-                from qiskit.ignis.mitigation.measurement import (
-                    TensoredMeasFitter,
-                )
+                from qiskit.ignis.mitigation.measurement import TensoredMeasFitter
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     libname="qiskit-ignis",
@@ -312,9 +300,7 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
             self._meas_fitter[dt] = TensoredMeasFitter(cal_results, **self._cal_options)
         elif self._mitigation == "complete":
             try:
-                from qiskit.ignis.mitigation.measurement import (
-                    CompleteMeasFitter,
-                )
+                from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     libname="qiskit-ignis",

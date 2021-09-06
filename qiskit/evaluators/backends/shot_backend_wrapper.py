@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
+from dataclasses import dataclass
 from typing import Union
 
 from qiskit.circuit import QuantumCircuit
@@ -24,16 +25,19 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV1
 from qiskit.result import Counts, Result
 
-from .backend_wrapper import (
-    BackendWrapper,
-    BaseBackendWrapper,
-    ReadoutErrorMitigation,
-)
+from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation
 
 logger = logging.getLogger(__name__)
 
 
-class ShotBackendWrapper:
+@dataclass
+class ShotResult:
+    counts: list[Counts]
+    shots: int
+    raw_results: list[Result]
+
+
+class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
     """Backend wrapper to return a list of counts"""
 
     def __init__(self, backend: Union[BackendV1, BaseBackendWrapper]):
@@ -58,9 +62,7 @@ class ShotBackendWrapper:
         Returns:
             backend
         """
-        if isinstance(self._backend, BaseBackendWrapper):
-            return self._backend.backend
-        return self._backend
+        return self._backend.backend
 
     @property
     def max_shots(self) -> int:
@@ -81,16 +83,6 @@ class ShotBackendWrapper:
             max_experiments
         """
         return self._max_experiments
-
-    @property
-    def raw_results(self) -> list[Result]:
-        """
-        TODO
-
-        Returns:
-            raw results
-        """
-        return self._raw_results
 
     @staticmethod
     def from_backend(
@@ -125,7 +117,7 @@ class ShotBackendWrapper:
         return ret
 
     def _copy_experiments(
-        self, circuits: list[QuantumCircuit], shots: int
+        self, circuits: list[QuantumCircuit], shots: int, exact: bool
     ) -> list[tuple[list[QuantumCircuit], int]]:
         assert self._num_circuits <= self._max_experiments
         max_copies = self._max_experiments // self._num_circuits
@@ -138,7 +130,7 @@ class ShotBackendWrapper:
             num_copies = min(num_copies, max_copies)
 
             shots, rem = divmod(remaining_shots, num_copies)
-            if rem:
+            if rem and not exact:
                 shots += 1
             shots = min(shots, self._max_shots)
             logger.info(
@@ -152,8 +144,12 @@ class ShotBackendWrapper:
         return ret
 
     def run_and_wait(
-        self, circuits: Union[QuantumCircuit, list[QuantumCircuit]], append: bool = False, **options
-    ) -> list[Counts]:
+        self,
+        circuits: Union[QuantumCircuit, list[QuantumCircuit]],
+        append: bool = False,
+        exact_shots: bool = False,
+        **options,
+    ) -> ShotResult:
         """
         TODO
 
@@ -171,7 +167,7 @@ class ShotBackendWrapper:
         if self._num_circuits > self._max_experiments:
             circs_shots = self._split_experiments(circuits, shots)
         else:
-            circs_shots = self._copy_experiments(circuits, shots)
+            circs_shots = self._copy_experiments(circuits, shots, exact_shots)
         results = []
         for circs, shots in circs_shots:
             result = self._backend.run_and_wait(circs, shots=shots, **options)
@@ -182,9 +178,12 @@ class ShotBackendWrapper:
             self._raw_results.extend(results)
         else:
             self._raw_results = results
-        return self.get_counts(self._raw_results)
+        counts = self._get_counts(self._raw_results)
+        return ShotResult(
+            counts=counts, shots=int(sum(counts[0].values())), raw_results=self._raw_results
+        )
 
-    def get_counts(self, results: list[Result]) -> list[Counts]:
+    def _get_counts(self, results: list[Result]) -> list[Counts]:
         """
         Convert Result to Counts
 

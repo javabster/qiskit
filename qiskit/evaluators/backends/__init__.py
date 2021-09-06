@@ -15,4 +15,4 @@ Backend wrapper classes
 """
 
 from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation, Retry
-from .shot_backend_wrapper import ShotBackendWrapper
+from .shot_backend_wrapper import ShotBackendWrapper, ShotResult
