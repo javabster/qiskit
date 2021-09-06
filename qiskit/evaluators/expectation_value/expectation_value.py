@@ -14,21 +14,14 @@ Expectation value class
 """
 from __future__ import annotations
 
-import copy
 import sys
-from typing import Optional, Union, cast
+from typing import Union
 
-import numpy as np
-
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
 from qiskit.evaluators.backends import BaseBackendWrapper, ShotBackendWrapper
-from qiskit.evaluators.framework import (
-    BaseEvaluator,
-    BasePreprocessing,
-)
+from qiskit.evaluators.framework import BaseEvaluator, BasePreprocessing
 from qiskit.evaluators.results import ExpectationValueResult
-from qiskit.exceptions import QiskitError
 from qiskit.extensions import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
@@ -75,13 +68,10 @@ class ExpectationValue(BaseEvaluator):
         backend: Union[Backend, BaseBackendWrapper, ShotBackendWrapper],
     ):
         """ """
-        super().__init__(backend)
+        super().__init__(backend, postprocessing)
         self._preprocessing = preprocessing
-        self._postprocessing = postprocessing
         self._state = self._init_state(state)
         self._observable = self._init_observable(observable)
-        self._transpiled_circuits: Optional[list[QuantumCircuit]] = None
-        self._metadata: Optional[list[dict]] = None
 
     @property
     def state(self) -> QuantumCircuit:
@@ -121,13 +111,10 @@ class ExpectationValue(BaseEvaluator):
 
         Returns:
             transpile options
-        Raises:
-            QiskitError: if preprocessing is not BasePreprocessing
         """
         if isinstance(self._preprocessing, BasePreprocessing):
             return self._preprocessing.transpile_options
-        else:
-            raise QiskitError()
+        return super().transpile_options
 
     def set_transpile_options(self, **fields) -> ExpectationValue:
         """Set the transpiler options for transpiler.
@@ -136,16 +123,14 @@ class ExpectationValue(BaseEvaluator):
             fields: The fields to update the options
         Returns:
             self
-        Raises:
-            QiskitError: if preprocessing is not BasePreprocessing
         """
+        self._transpiled_circuits = None
+        self._metadata = None
         if isinstance(self._preprocessing, BasePreprocessing):
-            self._transpiled_circuits = None
-            self._metadata = None
             self._preprocessing.set_transpile_options(**fields)
-            return self
         else:
-            raise QiskitError()
+            super().set_transpile_options(**fields)
+        return self
 
     @property
     def transpiled_circuits(self) -> list[QuantumCircuit]:
@@ -159,7 +144,7 @@ class ExpectationValue(BaseEvaluator):
             self._transpiled_circuits, self._metadata = self._preprocessing(
                 self.state, self.observable
             )
-        return self._transpiled_circuits
+        return super().transpiled_circuits
 
     @staticmethod
     def _init_state(state: Union[QuantumCircuit, Statevector]) -> QuantumCircuit:
@@ -186,29 +171,3 @@ class ExpectationValue(BaseEvaluator):
             return SparsePauliOp.from_operator(observable)
 
         raise TypeError(f"Unrecognized observable {type(observable)}")
-
-    def evaluate(
-        self,
-        parameters: Optional[Union[list[float], np.ndarray]] = None,
-        had_transpiled: bool = True,
-        **run_options,
-    ) -> ExpectationValueResult:
-
-        run_opts = copy.copy(self.run_options)
-        run_opts.update_options(**run_options)
-        run_opts_dict = run_opts.__dict__
-
-        # TODO: support Aer parameter bind after https://github.com/Qiskit/qiskit-aer/pull/1317
-        if parameters is not None:
-            circuits = [circ.bind_parameters(parameters) for circ in self.transpiled_circuits]
-        else:
-            circuits = self.transpiled_circuits
-
-        if not had_transpiled:
-            circuits = cast(
-                list[QuantumCircuit], transpile(circuits, **self.transpile_options.__dict__)
-            )
-
-        result = self._backend.run_and_wait(circuits, **run_opts_dict)
-
-        return self._postprocessing(result, self._metadata)

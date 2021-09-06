@@ -28,9 +28,8 @@ if has_aer():
 class TestPauliExpectationValue(QiskitTestCase):
     """Test PauliExpectationValue"""
 
-    @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_evaluate_basicaer(self):
-        """test for evaluate"""
+        """test for evaluate with BasicAer"""
         observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
         expval = PauliExpectationValue(
@@ -39,17 +38,17 @@ class TestPauliExpectationValue(QiskitTestCase):
         expval.set_transpile_options(seed_transpiler=15)
         expval.set_run_options(seed_simulator=15)
         result = expval.evaluate([0, 1, 1, 2, 3, 5], had_transpiled=False)
-        self.assertAlmostEqual(result.value, 1.69921875)
-        self.assertAlmostEqual(result.variance, 11.2209320068)
+        self.assertAlmostEqual(result.value, 1.845703125)
+        self.assertAlmostEqual(result.variance, 11.117565155029297)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
     def test_evaluate(self):
-        """test for evaluate"""
+        """test for evaluate with Aer"""
         observable = PauliSumOp.from_list([("XX", 1), ("YY", 2), ("ZZ", 3)])
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
         expval = PauliExpectationValue(ansatz, observable, backend=AerSimulator())
         expval.set_transpile_options(seed_transpiler=15)
         expval.set_run_options(seed_simulator=15)
         result = expval.evaluate([0, 1, 1, 2, 3, 5])
-        self.assertAlmostEqual(result.value, 1.69921875)
-        self.assertAlmostEqual(result.variance, 11.2209320068)
+        self.assertAlmostEqual(result.value, 1.806640625)
+        self.assertAlmostEqual(result.variance, 11.092403411865234)

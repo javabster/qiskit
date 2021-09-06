@@ -20,14 +20,14 @@ class Histogram(BaseEvaluator):
     This class evaluates histogram.
     """
 
-    def __init__(self, backend):
+    def __init__(self, backend, postprocessing):
         """
         TODO
         """
-        super().__init__(backend)
+        super().__init__(backend, postprocessing)
         pass
 
-    def evaluate(self, parameters, had_transpiled=True, **run_options):
+    def evaluate(self, parameters=None, had_transpiled=True, **run_options):
         """
         TODO
         """

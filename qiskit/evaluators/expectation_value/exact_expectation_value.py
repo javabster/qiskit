@@ -25,6 +25,7 @@ from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
+from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.result import Counts, Result
@@ -48,6 +49,7 @@ class ExactExpectationValue(ExpectationValue):
         backend: Backend,
         transpile_options: Optional[dict] = None,
     ):
+        self._preprocessing: BasePreprocessing
         if not has_aer():
             raise MissingOptionalLibraryError(
                 libname="qiskit-aer",
@@ -62,6 +64,33 @@ class ExactExpectationValue(ExpectationValue):
             observable=observable,
             backend=backend,
         )
+
+    @property
+    def transpile_options(self) -> Options:
+        """
+        Options for transpile
+
+        Returns:
+            transpile options
+        Raises:
+            QiskitError: if preprocessing is not BasePreprocessing
+        """
+        return self._preprocessing.transpile_options
+
+    def set_transpile_options(self, **fields) -> ExpectationValue:
+        """Set the transpiler options for transpiler.
+
+        Args:
+            fields: The fields to update the options
+        Returns:
+            self
+        Raises:
+            QiskitError: if preprocessing is not BasePreprocessing
+        """
+        self._transpiled_circuits = None
+        self._metadata = None
+        self._preprocessing.set_transpile_options(**fields)
+        return self
 
 
 class ExactPreprocessing(BasePreprocessing):
@@ -92,7 +121,7 @@ class ExactPostprocessing(BasePostprocessing):
 
     def execute(self, result: Union[Result, list[Counts]], metadata) -> ExpectationValueResult:
 
-        if isinstance(result, list):
+        if not isinstance(result, Result):
             raise TypeError(f"{self.__class__.__name__} does not support list[Counts] as an input.")
 
         expval, variance = result.data()["expectation_value_variance"]

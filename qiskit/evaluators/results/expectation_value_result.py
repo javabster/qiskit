@@ -26,5 +26,5 @@ class ExpectationValueResult(BaseResult):
 
     value: float
     variance: float
-    confidence_interval: list[tuple[float, float]]
+    confidence_interval: tuple[float, float]
     # metadata: Metadata

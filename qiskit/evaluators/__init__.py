@@ -17,3 +17,4 @@ It contains evaluator primitives.
 """
 
 from .expectation_value import ExactExpectationValue, PauliExpectationValue
+from .framework import JointEvaluator

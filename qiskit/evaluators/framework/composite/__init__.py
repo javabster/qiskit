@@ -9,8 +9,8 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""
+Framework for composite evaluator classes.
+"""
 
-"""Result classes for evaluators."""
-
-from .composite_result import CompositeResult
-from .expectation_value_result import ExpectationValueResult
+from .joint_evaluator import JointEvaluator

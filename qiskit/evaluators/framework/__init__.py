@@ -13,6 +13,7 @@
 Framework for evaluator classes.
 """
 
-from .base_evaluator import BaseEvaluator
+from .base_evaluator import BaseEvaluator, Postprocessing
 from .base_postprocessing import BasePostprocessing
 from .base_preprocessing import BasePreprocessing
+from .composite import JointEvaluator

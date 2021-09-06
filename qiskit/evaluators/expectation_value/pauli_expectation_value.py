@@ -73,7 +73,7 @@ class PauliPreprocessing(BasePreprocessing):
 
         # circuit transpilation
         transpiled_circuit: QuantumCircuit = cast(
-            QuantumCircuit, transpile(state, self._backend, **self._transpile_options.__dict__)
+            QuantumCircuit, transpile(state, self._backend, **self.transpile_options.__dict__)
         )
         # TODO: final layout
 
@@ -107,7 +107,7 @@ class PauliPostprocessing(BasePostprocessing):
         """
         TODO
         """
-        if isinstance(result, Result):
+        if not isinstance(result, list):
             raise TypeError()
 
         data = result

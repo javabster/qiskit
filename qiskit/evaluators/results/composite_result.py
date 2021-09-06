@@ -10,26 +10,15 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Fidelity
+Composite result class
 """
-from .framework.base_evaluator import BaseEvaluator
 
 
-class Fidelity(BaseEvaluator):
+from .base_result import BaseResult
+
+
+class CompositeResult(BaseResult):
     """
-    The class evaluates the fidelity of two states.
+    Composite Result
     """
-
-    # pylint: disable=unused-argument
-    def __init__(self, state1, state2, backend, postprocessing):
-        """
-        TODO: write docstring
-        """
-        super().__init__(backend, postprocessing)
-        pass
-
-    def evaluate(self, parameters=None, had_transpiled=True, **run_options):
-        """
-        TODO
-        """
-        pass
+    items: list[BaseResult]
