@@ -23,12 +23,13 @@ from qiskit.evaluators.backends import (
     BackendWrapper,
     BaseBackendWrapper,
     ShotBackendWrapper,
+    ShotResult,
 )
 from qiskit.evaluators.results import CompositeResult
 from qiskit.evaluators.results.base_result import BaseResult
 from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
-from qiskit.result import Counts, Result
+from qiskit.result import Result
 
 if sys.version_info >= (3, 8):
     from typing import Protocol
@@ -39,7 +40,7 @@ else:
 class Postprocessing(Protocol):
     """Postprocessing Callback Protocol (PEP544)"""
 
-    def __call__(self, result: Union[list[Counts], Result], metadata: list[dict]) -> BaseResult:
+    def __call__(self, result: Union[ShotResult, Result], metadata: list[dict]) -> BaseResult:
         ...
 
 
@@ -150,13 +151,13 @@ class BaseEvaluator:
         elif isinstance(parameters, list) and isinstance(parameters[0], list):
             parameters = cast(list[list[float]], parameters)
             if self._num_circuits is None:
-                print("none")
                 circuits = [
                     circ.bind_parameters(params)
                     for params in parameters
                     for circ in self.transpiled_circuits
                 ]
                 self._num_circuits = [len(self.transpiled_circuits)] * len(parameters)
+                self._metadata = sum([self._metadata] * len(parameters), [])
             else:
                 if len(parameters) != len(self._num_circuits):
                     raise TypeError("Length is different.")
@@ -185,7 +186,6 @@ class BaseEvaluator:
         if (
             isinstance(parameters, list) and isinstance(parameters[0], list)
         ) or self._num_circuits is not None:
-            results = cast(list, results)
             postprocessed_results = []
             accum = 0
             for num_circuit in self._num_circuits:

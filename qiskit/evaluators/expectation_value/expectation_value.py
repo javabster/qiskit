@@ -19,7 +19,11 @@ from typing import Union
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
-from qiskit.evaluators.backends import BaseBackendWrapper, ShotBackendWrapper
+from qiskit.evaluators.backends import (
+    BaseBackendWrapper,
+    ShotBackendWrapper,
+    ShotResult,
+)
 from qiskit.evaluators.framework import BaseEvaluator, BasePreprocessing
 from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.extensions import Initialize
@@ -28,7 +32,7 @@ from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Counts, Result
+from qiskit.result import Result
 
 if sys.version_info >= (3, 8):
     from typing import Protocol
@@ -49,7 +53,7 @@ class Postprocessing(Protocol):
     """Postprocessing Callback Protocol (PEP544)"""
 
     def __call__(
-        self, result: Union[list[Counts], Result], metadata: list[dict]
+        self, result: Union[ShotResult, Result], metadata: list[dict]
     ) -> ExpectationValueResult:
         ...
 

@@ -17,8 +17,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Union
 
+from qiskit.evaluators.backends import ShotResult
 from qiskit.evaluators.results.base_result import BaseResult
-from qiskit.result import Counts, Result
+from qiskit.result import Result
 
 
 class BasePostprocessing(ABC):
@@ -30,7 +31,7 @@ class BasePostprocessing(ABC):
         return self.execute(result, metadata)
 
     @abstractmethod
-    def execute(self, result: Union[list[Counts], Result], metadata: list[dict]) -> BaseResult:
+    def execute(self, result: Union[ShotResult, Result], metadata: list[dict]) -> BaseResult:
         """
         TODO
         """

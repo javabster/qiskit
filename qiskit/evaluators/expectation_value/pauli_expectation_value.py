@@ -21,7 +21,11 @@ from typing import Optional, Union, cast
 import numpy as np
 
 from qiskit import ClassicalRegister, QuantumCircuit, transpile
-from qiskit.evaluators.backends import BackendWrapper, ShotBackendWrapper, ShotResult
+from qiskit.evaluators.backends import (
+    BackendWrapper,
+    ShotBackendWrapper,
+    ShotResult,
+)
 from qiskit.evaluators.framework import BasePostprocessing, BasePreprocessing
 from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.opflow import PauliSumOp
@@ -107,8 +111,8 @@ class PauliPostprocessing(BasePostprocessing):
         """
         TODO
         """
-        if not isinstance(result, list):
-            raise TypeError()
+        if not isinstance(result, ShotResult):
+            raise TypeError(f"result must be ShotResult, not {type(result)}.")
 
         data = result.counts
 

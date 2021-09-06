@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Optional, Union, cast
 
 from qiskit import QuantumCircuit, transpile
+from qiskit.evaluators.backends import ShotResult
 from qiskit.evaluators.framework import BasePostprocessing, BasePreprocessing
 from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.exceptions import MissingOptionalLibraryError
@@ -28,7 +29,7 @@ from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Counts, Result
+from qiskit.result import Result
 from qiskit.utils import has_aer
 
 from .expectation_value import ExpectationValue
@@ -119,7 +120,7 @@ class ExactPostprocessing(BasePostprocessing):
     Postprocessing for :class:`ExactExpectationValue`.
     """
 
-    def execute(self, result: Union[Result, list[Counts]], metadata) -> ExpectationValueResult:
+    def execute(self, result: Union[Result, ShotResult], metadata) -> ExpectationValueResult:
 
         if not isinstance(result, Result):
             raise TypeError(f"{self.__class__.__name__} does not support list[Counts] as an input.")

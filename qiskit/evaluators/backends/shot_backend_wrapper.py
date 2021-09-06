@@ -25,16 +25,27 @@ from qiskit.exceptions import QiskitError
 from qiskit.providers.backend import BackendV1
 from qiskit.result import Counts, Result
 
-from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation
+from .backend_wrapper import (
+    BackendWrapper,
+    BaseBackendWrapper,
+    ReadoutErrorMitigation,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ShotResult:
+    """
+    Dataclass for shot results
+    """
+
     counts: list[Counts]
     shots: int
     raw_results: list[Result]
+
+    def __getitem__(self, key):
+        return ShotResult(self.counts[key], self.shots, self.raw_results)
 
 
 class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
@@ -143,6 +154,7 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
             ret.append((circuits * num_copies, shots))
         return ret
 
+    # pylint: disable=arguments-differ
     def run_and_wait(
         self,
         circuits: Union[QuantumCircuit, list[QuantumCircuit]],

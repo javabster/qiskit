@@ -15,28 +15,13 @@ Evaluator class base class
 from __future__ import annotations
 
 import copy
-import sys
 from typing import Union, cast
 
 from qiskit import QuantumCircuit, transpile
 from qiskit.evaluators.backends import BaseBackendWrapper, ShotBackendWrapper
-from qiskit.evaluators.results.base_result import BaseResult
 from qiskit.providers import BackendV1 as Backend
-from qiskit.result import Counts, Result
 
-from .base_evaluator import BaseEvaluator
-
-if sys.version_info >= (3, 8):
-    from typing import Protocol
-else:
-    from typing_extensions import Protocol
-
-
-class Postprocessing(Protocol):
-    """Postprocessing Callback Protocol (PEP544)"""
-
-    def __call__(self, result: Union[list[Counts], Result], metadata: list[dict]) -> BaseResult:
-        ...
+from .base_evaluator import BaseEvaluator, Postprocessing
 
 
 class TranspiledEvaluator(BaseEvaluator):

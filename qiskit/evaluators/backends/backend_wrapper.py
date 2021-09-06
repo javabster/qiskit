@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from .shot_backend_wrapper import ShotBackendWrapper
 
-T = TypeVar("T")
+T = TypeVar("T")  # pylint: disable=invalid-name
 
 
 class BaseBackendWrapper(ABC, Generic[T]):
@@ -150,7 +150,10 @@ class Retry(BaseBackendWrapper):
         TODO
         """
         try:
-            from qiskit.providers.ibmq.job import IBMQJobFailureError, IBMQJobInvalidStateError
+            from qiskit.providers.ibmq.job import (
+                IBMQJobFailureError,
+                IBMQJobInvalidStateError,
+            )
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-ibmq-provider",
@@ -203,7 +206,10 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         self._cal_options = cal_options
 
         try:
-            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter, TensoredMeasFitter
+            from qiskit.ignis.mitigation.measurement import (
+                CompleteMeasFitter,
+                TensoredMeasFitter,
+            )
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-ignis",
@@ -265,7 +271,9 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
             return
         if self._mitigation == "tensored":
             try:
-                from qiskit.ignis.mitigation.measurement import tensored_meas_cal
+                from qiskit.ignis.mitigation.measurement import (
+                    tensored_meas_cal,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     libname="qiskit-ignis",
@@ -275,7 +283,9 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
             meas_calibs, state_labels = tensored_meas_cal(**self._cal_options)
         elif self._mitigation == "complete":
             try:
-                from qiskit.ignis.mitigation.measurement import complete_meas_cal
+                from qiskit.ignis.mitigation.measurement import (
+                    complete_meas_cal,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     libname="qiskit-ignis",
@@ -290,7 +300,9 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         dt = self._datetime(cal_results.date)
         if self._mitigation == "tensored":
             try:
-                from qiskit.ignis.mitigation.measurement import TensoredMeasFitter
+                from qiskit.ignis.mitigation.measurement import (
+                    TensoredMeasFitter,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     libname="qiskit-ignis",
@@ -300,7 +312,9 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
             self._meas_fitter[dt] = TensoredMeasFitter(cal_results, **self._cal_options)
         elif self._mitigation == "complete":
             try:
-                from qiskit.ignis.mitigation.measurement import CompleteMeasFitter
+                from qiskit.ignis.mitigation.measurement import (
+                    CompleteMeasFitter,
+                )
             except ImportError as ex:
                 raise MissingOptionalLibraryError(
                     libname="qiskit-ignis",
