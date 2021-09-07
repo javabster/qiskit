@@ -84,6 +84,7 @@ class PauliPreprocessing(BasePreprocessing):
         circuits: list[QuantumCircuit] = []
         metadata: list[dict] = []
         for pauli, coeff in observable.label_iter():
+            coeff = coeff.real.item() if np.isreal(coeff) else coeff.item()
             circuit = transpiled_circuit.copy()
             creg = ClassicalRegister(len(pauli))
             circuit.add_register(creg)
@@ -185,7 +186,7 @@ def _expval_with_variance(
                 variance,
             )
         variance = 0.0
-    return expval, variance
+    return expval.item(), variance.item()
 
 
 def _pauli_diagonal(pauli: str) -> np.ndarray:

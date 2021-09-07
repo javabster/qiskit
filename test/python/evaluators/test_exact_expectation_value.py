@@ -34,5 +34,7 @@ class TestExactExpectationValue(QiskitTestCase):
         ansatz = RealAmplitudes(num_qubits=2, reps=2)
         expval = ExactExpectationValue(ansatz, observable, backend=AerSimulator())
         result = expval.evaluate([0, 1, 1, 2, 3, 5])
+        self.assertIsInstance(result.value, float)
         self.assertAlmostEqual(result.value, 1.84209213)
+        self.assertIsInstance(result.variance, float)
         self.assertAlmostEqual(result.variance, 6.43276352)

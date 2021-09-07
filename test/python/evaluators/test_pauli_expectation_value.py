@@ -38,7 +38,9 @@ class TestPauliExpectationValue(QiskitTestCase):
         expval.set_transpile_options(seed_transpiler=15)
         expval.set_run_options(seed_simulator=15)
         result = expval.evaluate([0, 1, 1, 2, 3, 5], had_transpiled=False)
+        self.assertIsInstance(result.value, float)
         self.assertAlmostEqual(result.value, 1.845703125)
+        self.assertIsInstance(result.variance, float)
         self.assertAlmostEqual(result.variance, 11.117565155029297)
 
     @unittest.skipUnless(has_aer(), "qiskit-aer doesn't appear to be installed.")
@@ -50,5 +52,7 @@ class TestPauliExpectationValue(QiskitTestCase):
         expval.set_transpile_options(seed_transpiler=15)
         expval.set_run_options(seed_simulator=15)
         result = expval.evaluate([0, 1, 1, 2, 3, 5])
+        self.assertIsInstance(result.value, float)
         self.assertAlmostEqual(result.value, 1.806640625)
+        self.assertIsInstance(result.variance, float)
         self.assertAlmostEqual(result.variance, 11.092403411865234)
