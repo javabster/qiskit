@@ -120,7 +120,7 @@ class ExactPostprocessing(BasePostprocessing):
     Postprocessing for :class:`ExactExpectationValue`.
     """
 
-    def execute(self, result: Union[Result, ShotResult], metadata) -> ExpectationValueResult:
+    def execute(self, result: Union[Result, ShotResult]) -> ExpectationValueResult:
 
         if not isinstance(result, Result):
             raise TypeError(f"{self.__class__.__name__} does not support list[Counts] as an input.")

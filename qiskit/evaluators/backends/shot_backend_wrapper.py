@@ -43,9 +43,10 @@ class ShotResult:
     counts: list[Counts]
     shots: int
     raw_results: list[Result]
+    metadata: list[dict]
 
     def __getitem__(self, key):
-        return ShotResult(self.counts[key], self.shots, self.raw_results)
+        return ShotResult(self.counts[key], self.shots, self.raw_results, self.metadata[key])
 
 
 class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
@@ -184,6 +185,7 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
         for circs, shots in circs_shots:
             result = self._backend.run_and_wait(circs, shots=shots, **options)
             results.append(result)
+
         if isinstance(self._backend, ReadoutErrorMitigation):
             results = self._backend.apply_mitigation(results)
         if append:
@@ -191,8 +193,12 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
         else:
             self._raw_results = results
         counts = self._get_counts(self._raw_results)
+        metadata = [res.header.metadata for result in results for res in result.results]
         return ShotResult(
-            counts=counts, shots=int(sum(counts[0].values())), raw_results=self._raw_results
+            counts=counts,
+            shots=int(sum(counts[0].values())),
+            raw_results=self._raw_results,
+            metadata=metadata,
         )
 
     def _get_counts(self, results: list[Result]) -> list[Counts]:

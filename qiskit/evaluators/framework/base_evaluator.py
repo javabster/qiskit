@@ -40,7 +40,7 @@ else:
 class Postprocessing(Protocol):
     """Postprocessing Callback Protocol (PEP544)"""
 
-    def __call__(self, result: Union[ShotResult, Result], metadata: list[dict]) -> BaseResult:
+    def __call__(self, result: Union[ShotResult, Result]) -> BaseResult:
         ...
 
 
@@ -192,10 +192,9 @@ class BaseEvaluator:
                 postprocessed_results.append(
                     self._postprocessing(
                         results[accum : accum + num_circuit],
-                        self._metadata[accum : accum + num_circuit],
                     )
                 )
                 accum += num_circuit
 
             return CompositeResult(postprocessed_results)
-        return self._postprocessing(results, self._metadata)
+        return self._postprocessing(results)

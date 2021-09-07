@@ -27,11 +27,11 @@ class BasePostprocessing(ABC):
     Base class for postprocessing.
     """
 
-    def __call__(self, result, metadata):
-        return self.execute(result, metadata)
+    def __call__(self, result):
+        return self.execute(result)
 
     @abstractmethod
-    def execute(self, result: Union[ShotResult, Result], metadata: list[dict]) -> BaseResult:
+    def execute(self, result: Union[ShotResult, Result]) -> BaseResult:
         """
         TODO
         """

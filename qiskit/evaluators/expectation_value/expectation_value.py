@@ -52,9 +52,7 @@ class Preprocessing(Protocol):
 class Postprocessing(Protocol):
     """Postprocessing Callback Protocol (PEP544)"""
 
-    def __call__(
-        self, result: Union[ShotResult, Result], metadata: list[dict]
-    ) -> ExpectationValueResult:
+    def __call__(self, result: Union[ShotResult, Result]) -> ExpectationValueResult:
         ...
 
 

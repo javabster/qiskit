@@ -106,9 +106,7 @@ class PauliPostprocessing(BasePostprocessing):
     Postprocessing for evaluation of expectation value using pauli rotation gates.
     """
 
-    def execute(
-        self, result: Union[ShotResult, Result], metadata: list[dict]
-    ) -> ExpectationValueResult:
+    def execute(self, result: Union[ShotResult, Result]) -> ExpectationValueResult:
         """
         TODO
         """
@@ -116,6 +114,7 @@ class PauliPostprocessing(BasePostprocessing):
             raise TypeError(f"result must be ShotResult, not {type(result)}.")
 
         data = result.counts
+        metadata = result.metadata
 
         combined_expval = 0.0
         combined_variance = 0.0

@@ -54,11 +54,9 @@ class JointEvaluator(BaseEvaluator):
             self._metadata = sum(metadata_list, [])
         return self._transpiled_circuits
 
-    def _construct_postprocessing(
-        self, result: Union[Result, ShotResult], metadata: list[dict]
-    ) -> BaseResult:
+    def _construct_postprocessing(self, result: Union[Result, ShotResult]) -> BaseResult:
         current_counter = self._counter
         self._counter += 1
         if self._counter == self._num_evaluators:
             self._counter = 0
-        return self._evaluators[current_counter]._postprocessing(result, metadata)
+        return self._evaluators[current_counter]._postprocessing(result)
