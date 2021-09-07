@@ -10,16 +10,21 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 """
-Composite result class
+Expectation value gradient result class
 """
 
+from __future__ import annotations
+
+import numpy as np
 
 from .base_result import BaseResult
 
 
-class CompositeResult(BaseResult):
+class ExpectationValueGradientResult(BaseResult):
     """
-    Composite Result
+    Result of ExpectationValueGradient
+    #TODO doc
     """
 
-    items: list[BaseResult]
+    values: np.ndarray  # values or array
+    # metadata: Metadata

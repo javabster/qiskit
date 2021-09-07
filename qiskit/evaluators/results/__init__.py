@@ -13,5 +13,6 @@
 """Result classes for evaluators."""
 
 from .composite_result import CompositeResult
+from .expectation_value_gradient_result import ExpectationValueGradientResult
 from .expectation_value_array_result import ExpectationValueArrayResult
 from .expectation_value_result import ExpectationValueResult

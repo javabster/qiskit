@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 
 class PauliExpectationValue(ExpectationValue):
     """
-    Evaluates expectaion value using pauli rotation gates.
+    Evaluates expectation value using pauli rotation gates.
     """
 
     def __init__(
