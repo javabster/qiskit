@@ -29,7 +29,6 @@ from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Result
 from qiskit.utils import has_aer
 
 from .expectation_value import ExpectationValue
@@ -118,12 +117,11 @@ class ExactPostprocessing(BasePostprocessing):
     Postprocessing for :class:`ExactExpectationValue`.
     """
 
-    def execute(self, result: Union[Result, ShotResult]) -> ExpectationValueResult:
+    def execute(self, result: Union[dict, ShotResult]) -> ExpectationValueResult:
 
-        if not isinstance(result, Result):
-            raise TypeError(f"{self.__class__.__name__} does not support list[Counts] as an input.")
+        #TOOD: validate
 
-        expval, variance = result.data()["expectation_value_variance"]
+        expval, variance = result["expectation_value_variance"]
 
         return ExpectationValueResult(
             expval,

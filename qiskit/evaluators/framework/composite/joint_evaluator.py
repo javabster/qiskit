@@ -25,7 +25,6 @@ from qiskit.evaluators.backends import ShotResult
 from qiskit.evaluators.framework.base_evaluator import BaseEvaluator
 from qiskit.evaluators.results import CompositeResult
 from qiskit.evaluators.results.base_result import BaseResult
-from qiskit.result import Result
 
 
 class JointEvaluator(BaseEvaluator):
@@ -53,7 +52,7 @@ class JointEvaluator(BaseEvaluator):
             )
         return self._transpiled_circuits
 
-    def _construct_postprocessing(self, result: Union[Result, ShotResult]) -> BaseResult:
+    def _construct_postprocessing(self, result: Union[dict, ShotResult]) -> BaseResult:
         current_counter = self._counter
         self._counter += 1
         if self._counter == len(self._evaluators):

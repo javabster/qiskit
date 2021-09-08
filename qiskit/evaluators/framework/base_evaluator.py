@@ -42,7 +42,7 @@ else:
 class Postprocessing(Protocol):
     """Postprocessing Callback Protocol (PEP544)"""
 
-    def __call__(self, result: Union[ShotResult, Result]) -> BaseResult:
+    def __call__(self, result: Union[ShotResult, dict]) -> BaseResult:
         ...
 
 
@@ -179,11 +179,18 @@ class BaseEvaluator:
         results = self._backend.run_and_wait(circuits, **run_opts_dict)
 
         if parameters is None or isinstance(parameters, np.ndarray) and parameters.ndim == 1:
+            if isinstance(results, Result):
+                return self._postprocessing(results.data(0))
             return self._postprocessing(results)
-        postprocessed = [
-            self._postprocessing(
-                results[i * len(self.transpiled_circuits) : (i + 1) * len(self.transpiled_circuits)]
-            )
-            for i in range(len(parameters))
-        ]
+        if isinstance(results, Result):
+            postprocessed = [self._postprocessing(results.data(i)) for i in range(len(parameters))]
+        else:
+            postprocessed = [
+                self._postprocessing(
+                    results[
+                        i * len(self.transpiled_circuits) : (i + 1) * len(self.transpiled_circuits)
+                    ]
+                )
+                for i in range(len(parameters))
+            ]
         return CompositeResult(postprocessed)

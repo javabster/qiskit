@@ -19,7 +19,6 @@ from typing import Union
 
 from qiskit.evaluators.backends import ShotResult
 from qiskit.evaluators.results.base_result import BaseResult
-from qiskit.result import Result
 
 
 class BasePostprocessing(ABC):
@@ -31,7 +30,7 @@ class BasePostprocessing(ABC):
         return self.execute(result)
 
     @abstractmethod
-    def execute(self, result: Union[ShotResult, Result]) -> BaseResult:
+    def execute(self, result: Union[ShotResult, dict]) -> BaseResult:
         """
         TODO
         """

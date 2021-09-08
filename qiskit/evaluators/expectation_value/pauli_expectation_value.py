@@ -32,7 +32,7 @@ from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
-from qiskit.result import Counts, Result
+from qiskit.result import Counts
 
 from .expectation_value import ExpectationValue
 
@@ -102,7 +102,7 @@ class PauliPostprocessing(BasePostprocessing):
     Postprocessing for evaluation of expectation value using pauli rotation gates.
     """
 
-    def execute(self, result: Union[ShotResult, Result]) -> ExpectationValueResult:
+    def execute(self, result: Union[ShotResult, dict]) -> ExpectationValueResult:
         """
         TODO
         """
