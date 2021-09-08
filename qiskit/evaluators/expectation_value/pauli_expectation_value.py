@@ -15,6 +15,7 @@ Expectation value class
 
 from __future__ import annotations
 
+import copy
 import logging
 from typing import Optional, Union, cast
 
@@ -73,17 +74,22 @@ class PauliPreprocessing(BasePreprocessing):
         TODO
         """
 
-        # circuit transpilation
-        transpiled_circuit: QuantumCircuit = cast(
-            QuantumCircuit, transpile(state, self._backend, **self.transpile_options.__dict__)
+        # 1. transpile a common circuit
+        transpiled_state = state.copy()
+        transpiled_state.measure_all()
+        transpiled_state = cast(
+            QuantumCircuit,
+            transpile(transpiled_state, self._backend, **self.transpile_options.__dict__),
         )
-        # TODO: final layout
+        #TODO DeprecationWarning below
+        layout = [qr[0].index for _, qr, _ in transpiled_state[-state.num_qubits :]]
+        transpiled_state.remove_final_measurements()
 
-        circuits: list[QuantumCircuit] = []
+        # 2. transpile diff circuits
+        diff_circuits: list[QuantumCircuit] = []
+        creg = ClassicalRegister(observable.num_qubits)
         for pauli, coeff in observable.label_iter():
-            coeff = coeff.real.item() if np.isreal(coeff) else coeff.item()
-            circuit = transpiled_circuit.copy()
-            creg = ClassicalRegister(len(pauli))
+            circuit = state.copy()
             circuit.add_register(creg)
             for i, val in enumerate(reversed(pauli)):
                 if val == "Y":
@@ -91,10 +97,30 @@ class PauliPreprocessing(BasePreprocessing):
                 if val in ["Y", "X"]:
                     circuit.h(i)
                 circuit.measure(i, i)
+            del circuit.data[0 : len(state)]
+            coeff = coeff.real.item() if np.isreal(coeff) else coeff.item()
             circuit.metadata = {"basis": pauli, "coeff": coeff}
-            circuits.append(circuit)
+            diff_circuits.append(circuit)
 
-        return circuits
+        transpile_opts = copy.copy(self.transpile_options)
+        transpile_opts.update_options(initial_layout=layout)
+        diff_circuits = cast(
+            list[QuantumCircuit], transpile(diff_circuits, self._backend, **transpile_opts.__dict__)
+        )
+
+        # 3. combine
+        transpiled_circuits = []
+        for diff_circuit in diff_circuits:
+            transpiled_circuit = transpiled_state.copy()
+            for creg in diff_circuit.cregs:
+                if creg not in transpiled_circuit.cregs:
+                    transpiled_circuit.add_register(creg)
+            for inst, qargs, cargs in diff_circuit.data:
+                transpiled_circuit.append(inst, qargs, cargs)
+            transpiled_circuit.metadata = diff_circuit.metadata
+            transpiled_circuits.append(transpiled_circuit)
+
+        return transpiled_circuits
 
 
 class PauliPostprocessing(BasePostprocessing):
