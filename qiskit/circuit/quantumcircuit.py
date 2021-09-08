@@ -237,7 +237,7 @@ class QuantumCircuit:
         self._data = []
 
         # This is a map of registers bound to this circuit, by name.
-        self.qregs = []
+        self.qregs: List[int] = []
         self.cregs = []
         self._qubits = []
         self._qubit_set = set()
