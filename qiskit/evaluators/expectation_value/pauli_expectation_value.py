@@ -68,9 +68,7 @@ class PauliPreprocessing(BasePreprocessing):
     Preprocessing for evaluation of expectation value using pauli rotation gates.
     """
 
-    def execute(
-        self, state: QuantumCircuit, observable: SparsePauliOp
-    ) -> tuple[list[QuantumCircuit], list[dict]]:
+    def execute(self, state: QuantumCircuit, observable: SparsePauliOp) -> list[QuantumCircuit]:
         """
         TODO
         """
@@ -82,7 +80,6 @@ class PauliPreprocessing(BasePreprocessing):
         # TODO: final layout
 
         circuits: list[QuantumCircuit] = []
-        metadata: list[dict] = []
         for pauli, coeff in observable.label_iter():
             coeff = coeff.real.item() if np.isreal(coeff) else coeff.item()
             circuit = transpiled_circuit.copy()
@@ -96,9 +93,8 @@ class PauliPreprocessing(BasePreprocessing):
                 circuit.measure(i, i)
             circuit.metadata = {"basis": pauli, "coeff": coeff}
             circuits.append(circuit)
-            metadata.append({"basis": pauli, "coeff": coeff})
 
-        return circuits, metadata
+        return circuits
 
 
 class PauliPostprocessing(BasePostprocessing):
@@ -137,7 +133,7 @@ class PauliPostprocessing(BasePostprocessing):
         return ExpectationValueResult(
             combined_expval,
             combined_variance,
-            [(combined_expval - combined_stderr, combined_expval + combined_stderr)],
+            (combined_expval - combined_stderr, combined_expval + combined_stderr),
         )
 
 

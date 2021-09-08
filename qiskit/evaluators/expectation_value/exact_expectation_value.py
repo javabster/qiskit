@@ -99,9 +99,7 @@ class ExactPreprocessing(BasePreprocessing):
     Preprocessing for :class:`ExactExpectationValue`.
     """
 
-    def execute(
-        self, state: QuantumCircuit, observable: SparsePauliOp
-    ) -> tuple[list[QuantumCircuit], list[dict]]:
+    def execute(self, state: QuantumCircuit, observable: SparsePauliOp) -> list[QuantumCircuit]:
         # circuit transpilation
         transpiled_circuit: QuantumCircuit = cast(
             QuantumCircuit, transpile(state, self._backend, **self._transpile_options.__dict__)
@@ -112,7 +110,7 @@ class ExactPreprocessing(BasePreprocessing):
         inst = SaveExpectationValueVariance(operator=observable)
 
         transpiled_circuit.append(inst, qargs=range(transpiled_circuit.num_qubits))
-        return [transpiled_circuit], [{}]
+        return [transpiled_circuit]
 
 
 class ExactPostprocessing(BasePostprocessing):

@@ -59,9 +59,7 @@ class BasePreprocessing(ABC):
         return self
 
     @abstractmethod
-    def execute(
-        self, state: QuantumCircuit, observable: SparsePauliOp
-    ) -> tuple[list[QuantumCircuit], list[dict]]:
+    def execute(self, state: QuantumCircuit, observable: SparsePauliOp) -> list[QuantumCircuit]:
         """
         TODO
         """

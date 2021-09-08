@@ -16,7 +16,9 @@ from __future__ import annotations
 
 import copy
 import sys
-from typing import Optional, Union, cast
+from typing import Any, Optional, Union, cast
+
+import numpy as np
 
 from qiskit import QuantumCircuit, transpile
 from qiskit.evaluators.backends import (
@@ -54,7 +56,7 @@ class BaseEvaluator:
 
     def __init__(
         self,
-        backend: Union[Backend, BaseBackendWrapper, ShotBackendWrapper],
+        backend: Union[Backend, BaseBackendWrapper],
         postprocessing: Postprocessing,
         transpile_options: Optional[dict] = None,
     ):
@@ -62,7 +64,7 @@ class BaseEvaluator:
         Args:
             backend: backend
         """
-        self._backend: Union[BaseBackendWrapper, ShotBackendWrapper]
+        self._backend: BaseBackendWrapper
         if isinstance(backend, ShotBackendWrapper):
             self._backend = backend
         else:
@@ -74,8 +76,6 @@ class BaseEvaluator:
             self.set_transpile_options(**transpile_options)
 
         self._transpiled_circuits: Optional[list[QuantumCircuit]] = None
-        self._metadata: Optional[list[dict]] = None
-        self._num_circuits: Optional[list[int]] = None
 
         self._postprocessing = postprocessing
 
@@ -134,7 +134,13 @@ class BaseEvaluator:
 
     def evaluate(
         self,
-        parameters: Optional[Union[list[float], list[list[float]]]] = None,
+        parameters: Optional[
+            Union[
+                list[float],
+                list[list[float]],
+                np.ndarray[Any, np.dtype[np.float64]],
+            ]
+        ] = None,
         had_transpiled=True,
         **run_options,
     ) -> BaseResult:
@@ -148,32 +154,21 @@ class BaseEvaluator:
         # TODO: support Aer parameter bind after https://github.com/Qiskit/qiskit-aer/pull/1317
         if parameters is None:
             circuits = self.transpiled_circuits
-        elif isinstance(parameters, list) and isinstance(parameters[0], list):
-            parameters = cast(list[list[float]], parameters)
-            if self._num_circuits is None:
+        else:
+            parameters = np.asarray(parameters, dtype=np.float64)
+            if parameters.ndim == 1:
                 circuits = [
-                    circ.bind_parameters(params)
-                    for params in parameters
+                    circ.bind_parameters(parameters)  # type: ignore
                     for circ in self.transpiled_circuits
                 ]
-                self._num_circuits = [len(self.transpiled_circuits)] * len(parameters)
-                self._metadata = sum([self._metadata] * len(parameters), [])
-            else:
-                if len(parameters) != len(self._num_circuits):
-                    raise TypeError("Length is different.")
-
-                flatten_parameters: list[list[float]] = sum(
-                    [[params] * num for params, num in zip(parameters, self._num_circuits)], []
-                )
+            elif parameters.ndim == 2:
                 circuits = [
-                    circ.bind_parameters(param)
-                    for param, circ in zip(flatten_parameters, self.transpiled_circuits)
+                    circ.bind_parameters(parameter)
+                    for parameter in parameters
+                    for circ in self.transpiled_circuits
                 ]
-        elif isinstance(parameters, list) and isinstance(parameters[0], (float, int)):
-            parameters = cast(list[float], parameters)
-            circuits = [circ.bind_parameters(parameters) for circ in self.transpiled_circuits]
-        else:
-            raise TypeError()
+            else:
+                raise TypeError("The number of array dimension must be 1 or 2.")
 
         if not had_transpiled:
             transpile_opts_dict = self.transpile_options.__dict__
@@ -183,18 +178,12 @@ class BaseEvaluator:
 
         results = self._backend.run_and_wait(circuits, **run_opts_dict)
 
-        if (
-            isinstance(parameters, list) and isinstance(parameters[0], list)
-        ) or self._num_circuits is not None:
-            postprocessed_results = []
-            accum = 0
-            for num_circuit in self._num_circuits:
-                postprocessed_results.append(
-                    self._postprocessing(
-                        results[accum : accum + num_circuit],
-                    )
-                )
-                accum += num_circuit
-
-            return CompositeResult(postprocessed_results)
-        return self._postprocessing(results)
+        if parameters is None or isinstance(parameters, np.ndarray) and parameters.ndim == 1:
+            return self._postprocessing(results)
+        postprocessed = [
+            self._postprocessing(
+                results[i * len(self.transpiled_circuits) : (i + 1) * len(self.transpiled_circuits)]
+            )
+            for i in range(len(parameters))
+        ]
+        return CompositeResult(postprocessed)

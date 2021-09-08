@@ -9,9 +9,26 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""
+Expectation value array result class
+"""
 
-"""Result classes for evaluators."""
+from __future__ import annotations
 
-from .composite_result import CompositeResult
-from .expectation_value_array_result import ExpectationValueArrayResult
-from .expectation_value_result import ExpectationValueResult
+from typing import Any
+
+import numpy as np
+
+from .base_result import BaseResult
+
+
+class ExpectationValueArrayResult(BaseResult):
+    """
+    Result of ExpectationValue
+    #TODO doc
+    """
+
+    values: np.ndarray[Any, np.dtype[np.float64]]
+    variances: np.ndarray[Any, np.dtype[np.float64]]
+    confidence_intervals: np.ndarray[Any, np.dtype[np.float64]]
+    # metadata: Metadata

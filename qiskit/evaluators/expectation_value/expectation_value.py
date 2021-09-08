@@ -15,7 +15,9 @@ Expectation value class
 from __future__ import annotations
 
 import sys
-from typing import Union
+from typing import Any, Optional, Union, cast
+
+import numpy as np
 
 from qiskit import QuantumCircuit
 from qiskit.circuit import ParameterExpression
@@ -25,7 +27,11 @@ from qiskit.evaluators.backends import (
     ShotResult,
 )
 from qiskit.evaluators.framework import BaseEvaluator, BasePreprocessing
-from qiskit.evaluators.results import ExpectationValueResult
+from qiskit.evaluators.results import (
+    CompositeResult,
+    ExpectationValueArrayResult,
+    ExpectationValueResult,
+)
 from qiskit.extensions import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
@@ -43,9 +49,7 @@ else:
 class Preprocessing(Protocol):
     """Preprocessing Callback Protocol (PEP544)"""
 
-    def __call__(
-        self, state: QuantumCircuit, observable: SparsePauliOp
-    ) -> tuple[list[QuantumCircuit], list[dict]]:
+    def __call__(self, state: QuantumCircuit, observable: SparsePauliOp) -> list[QuantumCircuit]:
         ...
 
 
@@ -87,7 +91,6 @@ class ExpectationValue(BaseEvaluator):
     @state.setter
     def state(self, state: Union[QuantumCircuit, Statevector]):
         self._transpiled_circuits = None
-        self._metadata = None
         self._state = self._init_state(state)
 
     @property
@@ -103,7 +106,6 @@ class ExpectationValue(BaseEvaluator):
     @observable.setter
     def observable(self, observable: Union[BaseOperator, PauliSumOp]):
         self._transpiled_circuits = None
-        self._metadata = None
         self._observable = self._init_observable(observable)
 
     @property
@@ -127,7 +129,6 @@ class ExpectationValue(BaseEvaluator):
             self
         """
         self._transpiled_circuits = None
-        self._metadata = None
         if isinstance(self._preprocessing, BasePreprocessing):
             self._preprocessing.set_transpile_options(**fields)
         else:
@@ -143,9 +144,7 @@ class ExpectationValue(BaseEvaluator):
             List of the transpiled quantum circuit
         """
         if self._transpiled_circuits is None:
-            self._transpiled_circuits, self._metadata = self._preprocessing(
-                self.state, self.observable
-            )
+            self._transpiled_circuits = self._preprocessing(self.state, self.observable)
         return super().transpiled_circuits
 
     @staticmethod
@@ -173,3 +172,24 @@ class ExpectationValue(BaseEvaluator):
             return SparsePauliOp.from_operator(observable)
 
         raise TypeError(f"Unrecognized observable {type(observable)}")
+
+    def evaluate(
+        self,
+        parameters: Optional[
+            Union[
+                list[float],
+                list[list[float]],
+                np.ndarray[Any, np.dtype[np.float64]],
+            ]
+        ] = None,
+        had_transpiled=True,
+        **run_options,
+    ) -> Union[ExpectationValueResult, ExpectationValueArrayResult]:
+        res = super().evaluate(parameters, had_transpiled, **run_options)
+        if isinstance(res, CompositeResult):
+            # TODO CompositeResult should be Generic
+            values = np.array([r.value for r in res.items])  # type: ignore
+            variances = np.array([r.variance for r in res.items])  # type: ignore
+            confidence_intervals = np.array([r.confidence_interval for r in res.items])  # type: ignore
+            return ExpectationValueArrayResult(values, variances, confidence_intervals)
+        return cast(ExpectationValueResult, res)

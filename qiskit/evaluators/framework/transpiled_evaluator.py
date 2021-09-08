@@ -14,10 +14,9 @@ Evaluator class base class
 """
 from __future__ import annotations
 
-import copy
-from typing import Union, cast
+from typing import Union
 
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit
 from qiskit.evaluators.backends import BaseBackendWrapper, ShotBackendWrapper
 from qiskit.providers import BackendV1 as Backend
 
@@ -41,25 +40,3 @@ class TranspiledEvaluator(BaseEvaluator):
         """
         super().__init__(backend=backend, postprocessing=postprocessing)
         self._transpiled_circuits = transpiled_circuits
-
-    def evaluate(self, parameters=None, had_transpiled=True, **run_options):
-
-        run_opts = copy.copy(self.run_options)
-        run_opts.update_options(**run_options)
-        run_opts_dict = run_opts.__dict__
-
-        # TODO: support Aer parameter bind after https://github.com/Qiskit/qiskit-aer/pull/1317
-        if parameters is not None:
-            circuits = [circ.bind_parameters(parameters) for circ in self.transpiled_circuits]
-        else:
-            circuits = self.transpiled_circuits
-
-        if not had_transpiled:
-            transpile_opts_dict: dict = {}
-            circuits = cast(
-                list[QuantumCircuit], transpile(circuits, self.backend, **transpile_opts_dict)
-            )
-
-        result = self._backend.run_and_wait(circuits, **run_opts_dict)
-
-        return self._postprocessing(result, self._metadata)
