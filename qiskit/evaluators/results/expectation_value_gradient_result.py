@@ -9,10 +9,22 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
+"""
+Expectation value gradient result class
+"""
 
-"""Result classes for evaluators."""
+from __future__ import annotations
 
-from .composite_result import CompositeResult
-from .expectation_value_array_result import ExpectationValueArrayResult
-from .expectation_value_gradient_result import ExpectationValueGradientResult
-from .expectation_value_result import ExpectationValueResult
+import numpy as np
+
+from .base_result import BaseResult
+
+
+class ExpectationValueGradientResult(BaseResult):
+    """
+    Result of ExpectationValueGradient
+    #TODO doc
+    """
+
+    values: np.ndarray  # values or array
+    # metadata: Metadata

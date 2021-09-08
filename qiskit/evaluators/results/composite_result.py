@@ -21,4 +21,5 @@ class CompositeResult(BaseResult):
     """
     Composite Result
     """
+
     items: list[BaseResult]

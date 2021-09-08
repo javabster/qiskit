@@ -119,7 +119,7 @@ class ExactPostprocessing(BasePostprocessing):
 
     def execute(self, result: Union[dict, ShotResult]) -> ExpectationValueResult:
 
-        #TOOD: validate
+        # TODO: validate
 
         expval, variance = result["expectation_value_variance"]
 

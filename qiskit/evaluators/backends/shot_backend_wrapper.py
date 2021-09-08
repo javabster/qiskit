@@ -21,15 +21,11 @@ from dataclasses import dataclass
 from typing import Union
 
 from qiskit.circuit import QuantumCircuit
-from qiskit.exceptions import QiskitError
+from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
 from qiskit.providers.backend import BackendV1
 from qiskit.result import Counts, Result
 
-from .backend_wrapper import (
-    BackendWrapper,
-    BaseBackendWrapper,
-    ReadoutErrorMitigation,
-)
+from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation
 
 logger = logging.getLogger(__name__)
 
@@ -60,11 +56,28 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
         if hasattr(config, "max_experiments"):
             self._max_experiments = config.max_experiments
         else:
-            logger.warning("no max_experiments for this backend: %s", self._backend.backend.name())
-            self._max_experiments = 1
+            self._max_experiments = 1 if self.is_aer(self._backend.backend) else 1_000_000
+            logger.warning(
+                "no max_experiments for backend '%s'. Set %d as max_experiments.",
+                self._backend.backend.name(),
+                self._max_experiments,
+            )
         self._num_circuits = 0
         self._num_splits = 0
         self._raw_results: list[Result] = []
+
+    @staticmethod
+    def is_aer(backend: BackendV1):
+        try:
+            from qiskit.providers.aer import AerProvider
+
+            return isinstance(backend.provider(), AerProvider)
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="qiskit-aer",
+                name="Qiskit Aer",
+                pip_install="pip install qiskit-aer",
+            ) from ex
 
     @property
     def backend(self) -> BackendV1:
@@ -120,7 +133,7 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
         for i in range(0, self._num_circuits, self._max_experiments):
             splits.append(circuits[i : min(i + self._max_experiments, self._num_circuits)])
         self._num_splits = len(splits)
-        logger.info("Number of splits: %d", self._num_splits)
+        logger.info("Number of circuits %d, Number of splits: %d", len(circuits), self._num_splits)
         while remaining_shots > 0:
             shots = min(remaining_shots, self._max_shots)
             remaining_shots -= shots
@@ -146,7 +159,9 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
                 shots += 1
             shots = min(shots, self._max_shots)
             logger.info(
-                "Number of shots: %d, number of copies: %d, total number of shots: %d",
+                "Number of circuits %d, number of shots: %d, number of copies: %d, "
+                "total number of shots: %d",
+                len(circuits),
                 shots,
                 num_copies,
                 shots * num_copies,
@@ -221,4 +236,5 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
             for count in counts:
                 counters[i % self._num_circuits].update(count)
                 i += 1
+        # TODO: recover the metadata of Counts
         return [Counts(c) for c in counters]
