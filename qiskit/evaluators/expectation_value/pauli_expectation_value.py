@@ -81,8 +81,8 @@ class PauliPreprocessing(BasePreprocessing):
             QuantumCircuit,
             transpile(transpiled_state, self._backend, **self.transpile_options.__dict__),
         )
-        #TODO DeprecationWarning below
-        layout = [qr[0].index for _, qr, _ in transpiled_state[-state.num_qubits :]]
+        bit_map = {bit: index for index, bit in enumerate(transpiled_state.qubits)}
+        layout = [bit_map[qr[0]] for _, qr, _ in transpiled_state[-state.num_qubits :]]
         transpiled_state.remove_final_measurements()
 
         # 2. transpile diff circuits
