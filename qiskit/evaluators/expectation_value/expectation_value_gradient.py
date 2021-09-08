@@ -15,26 +15,45 @@ Expectation value gradient class
 
 from __future__ import annotations
 
-from typing import Union, cast
+from typing import Any, Tuple, Union, cast
 
 import numpy as np
 
-from ..results.expectation_value_gradient_result import ExpectationValueGradientResult
+from qiskit.evaluators.framework.base_evaluator import BaseEvaluator
+from qiskit.evaluators.results import ExpectationValueArrayResult
+from qiskit.evaluators.results.expectation_value_gradient_result import (
+    ExpectationValueGradientResult,
+)
+
 from .expectation_value import ExpectationValue
 
 
-class BaseExpectationValueGradient:
-    """
-    Expectation Value Gradient class
-    """
-
+class BaseExpectationValueGradient(BaseEvaluator):
     def __init__(self, expval: ExpectationValue):
         self._expval = expval
 
-    def evaluate(
-        self, parameters: Union[list[float], np.ndarray], **run_options
-    ) -> ExpectationValueGradientResult:
+    def _preprocessing(
+        self, parameters: np.ndarray[Any, np.dtype[np.float64]]
+    ) -> np.ndarray[Any, np.dtype[np.float64]]:
         return NotImplemented
+
+    def _postprocessing(
+        self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
+    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        return NotImplemented
+
+    def evaluate(
+        self,
+        parameters: Union[list[float], list[list[float]], np.ndarray[Any, np.dtype[np.float64]]],
+        **run_options,
+    ) -> ExpectationValueGradientResult:
+        parameters = np.asarray(parameters, dtype=np.float64)
+        if len(parameters.shape) not in [1, 2]:
+            raise ValueError("parameters should be a 1D vector or 2D vectors")
+        param_array = self._preprocessing(parameters)
+        results = self._expval.evaluate(param_array, **run_options)
+        grad = self._postprocessing(results, parameters.shape)
+        return ExpectationValueGradientResult(values=grad)
 
 
 class FiniteDiffGradient(BaseExpectationValueGradient):
@@ -46,71 +65,34 @@ class FiniteDiffGradient(BaseExpectationValueGradient):
         super(FiniteDiffGradient, self).__init__(expval)
         self._epsilon = epsilon
 
-    def evaluate_seq(
-        self,
-        parameters: Union[list[float], np.ndarray],
-        **run_options,
-    ) -> ExpectationValueGradientResult:
-        if isinstance(parameters, np.ndarray):
-            if len(parameters.shape) != 1:
-                raise ValueError("parameters should be a vector")
-            else:
-                parameters = parameters.tolist()
-        parameters = cast(list[float], parameters)
-        dim = len(parameters)
-        todo = [parameters]
+    def _preprocessing(
+        self, parameters: np.ndarray[Any, np.dtype[np.float64]]
+    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        if len(parameters.shape) == 1:
+            parameters = parameters.reshape((1, parameters.shape[0]))
+        dim = parameters.shape[-1]
+        ret = []
+        for param in parameters:
+            ret.append(param)
+            for i in range(dim):
+                ei = param.copy()
+                ei[i] += self._epsilon
+                ret.append(ei)
+        return np.array(ret)
 
-        # preprocessing
-        for i in range(dim):
-            ei = parameters.copy()
-            ei[i] += self._epsilon
-            todo.append(ei)
-
-        # execution
-        results = []
-        for param in todo:
-            results.append(self._expval.evaluate(param, **run_options))
-
-        # postprocessing
-        grad = np.zeros(dim)
-        f_ref = results[0].value
-        for i, result in enumerate(results[1:]):
-            f_i = result.value
-            grad[i] = (f_i - f_ref) / self._epsilon
-
-        return ExpectationValueGradientResult(values=grad)
-
-    def evaluate(
-        self,
-        parameters: Union[list[float], np.ndarray],
-        **run_options,
-    ) -> ExpectationValueGradientResult:
-        if isinstance(parameters, np.ndarray):
-            if len(parameters.shape) != 1:
-                raise ValueError("parameters should be a vector")
-            else:
-                parameters = parameters.tolist()
-        parameters = cast(list[float], parameters)
-        dim = len(parameters)
-        todo = [parameters]
-
-        # preprocessing
-        for i in range(dim):
-            ei = parameters.copy()
-            ei[i] += self._epsilon
-            todo.append(ei)
-
-        # execution
-        results = self._expval.evaluate(todo, **run_options)
-
-        # postprocessing
-        grad = np.zeros(dim)
-        f_ref = results.items[0].value
-        for i, result in enumerate(results.items[1:]):
-            f_i = result.value
-            grad[i] = (f_i - f_ref) / self._epsilon
-
-        return ExpectationValueGradientResult(values=grad)
+    def _postprocessing(
+        self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
+    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        dim = shape[-1]
+        array = results.values.reshape((results.values.shape[0] // (dim + 1), dim + 1))
+        ret = []
+        for values in array:
+            grad = np.zeros(dim)
+            f_ref = values[0]
+            for i, f_i in enumerate(values[1:]):
+                grad[i] = (f_i - f_ref) / self._epsilon
+            ret.append(grad)
+        return np.array(ret).reshape(shape)
 
 
 class ParameterShiftGradient(BaseExpectationValueGradient):
@@ -120,41 +102,39 @@ class ParameterShiftGradient(BaseExpectationValueGradient):
 
     def __init__(self, expval: ExpectationValue):
         super(ParameterShiftGradient, self).__init__(expval)
+        self._epsilon = np.pi / 2
 
-    def evaluate(
-        self,
-        parameters: Union[list[float], np.ndarray],
-        **run_options,
-    ) -> ExpectationValueGradientResult:
-        if isinstance(parameters, np.ndarray):
-            if len(parameters.shape) != 1:
-                raise ValueError("parameters should be a vector")
-            else:
-                parameters = parameters.tolist()
-        parameters = cast(list[float], parameters)
-        dim = len(parameters)
-        todo = []
-        epsilon = np.pi / 2
+    def _preprocessing(
+        self, parameters: np.ndarray[Any, np.dtype[np.float64]]
+    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        if len(parameters.shape) == 1:
+            parameters = parameters.reshape((1, parameters.shape[0]))
+        dim = parameters.shape[-1]
+        ret = []
+        for param in parameters:
+            for i in range(dim):
+                ei = param.copy()
+                ei[i] += self._epsilon
+                ret.append(ei)
 
-        # preprocessing
-        for i in range(dim):
-            ei = parameters.copy()
-            ei[i] += epsilon
-            todo.append(ei)
+                ei = param.copy()
+                ei[i] -= self._epsilon
+                ret.append(ei)
 
-            ei = parameters.copy()
-            ei[i] -= epsilon
-            todo.append(ei)
+        return np.array(ret)
 
-        # execution
-        results = self._expval.evaluate(todo, **run_options)
-
-        # postprocessing
-        div = 2 * np.sin(epsilon)
-        grad = np.zeros(dim)
-        for i in range(dim):
-            f_plus = results.items[2 * i].value
-            f_minus = results.items[2 * i + 1].value
-            grad[i] = (f_plus - f_minus) / div
-
-        return ExpectationValueGradientResult(values=grad)
+    def _postprocessing(
+        self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
+    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        dim = shape[-1]
+        array = results.values.reshape((results.values.shape[0] // (2 * dim), 2 * dim))
+        div = 2 * np.sin(self._epsilon)
+        ret = []
+        for values in array:
+            grad = np.zeros(dim)
+            for i in range(dim):
+                f_plus = values[2 * i]
+                f_minus = values[2 * i + 1]
+                grad[i] = (f_plus - f_minus) / div
+            ret.append(grad)
+        return np.array(ret).reshape(shape)

@@ -20,8 +20,6 @@ from typing import Any, Optional, Union, cast
 
 import numpy as np
 
-import numpy as np
-
 from qiskit import QuantumCircuit, transpile
 from qiskit.evaluators.backends import (
     BackendWrapper,
@@ -154,8 +152,6 @@ class BaseEvaluator:
         run_opts_dict = run_opts.__dict__
 
         # TODO: support Aer parameter bind after https://github.com/Qiskit/qiskit-aer/pull/1317
-        if isinstance(parameters, np.ndarray):
-            parameters = parameters.tolist()
         if parameters is None:
             circuits = self.transpiled_circuits
         else:

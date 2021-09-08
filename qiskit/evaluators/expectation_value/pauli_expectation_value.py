@@ -206,7 +206,7 @@ def _expval_with_variance(
                 "(%f). Setting standard deviation of result to 0.",
                 variance,
             )
-        variance = 0.0
+        variance = np.float64(0.0)
     return expval.item(), variance.item()
 
 
