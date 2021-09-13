@@ -17,14 +17,13 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from datetime import datetime
-from time import time
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Generic, TypeVar, Union
 
 from qiskit.circuit import QuantumCircuit
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.providers.backend import BackendV1
-from qiskit.result import Result
+from qiskit.result import Counts, Result
 
 logger = logging.getLogger(__name__)
 
@@ -150,10 +149,7 @@ class Retry(BaseBackendWrapper):
         TODO
         """
         try:
-            from qiskit.providers.ibmq.job import (
-                IBMQJobFailureError,
-                IBMQJobInvalidStateError,
-            )
+            from qiskit.providers.ibmq.job import IBMQJobFailureError, IBMQJobInvalidStateError
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-ibmq-provider",
@@ -187,6 +183,8 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
     # need to move to the new mitigator class in the future
     # https://github.com/Qiskit/qiskit-terra/pull/6485
     # need to support M3 https://github.com/Qiskit-Partners/mthree
+    # need to use Terra's error mitigation after merge of
+    # https://github.com/Qiskit/qiskit-terra/pull/6867
     def __init__(
         self,
         backend: Union[BackendV1, BaseBackendWrapper],
@@ -200,23 +198,30 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         """
         self._backend = BackendWrapper.from_backend(backend)
         self._mitigation = mitigation
-        self._refresh = refresh
+        self._refresh = timedelta(seconds=refresh)
         self._shots = shots
-        self._time_threshold = 0.0
+        self._time_threshold = datetime.fromordinal(1)
         self._cal_options = cal_options
 
         try:
-            from qiskit.ignis.mitigation.measurement import (
-                CompleteMeasFitter,
-                TensoredMeasFitter,
-            )
+            from qiskit.ignis.mitigation.measurement import CompleteMeasFitter, TensoredMeasFitter
         except ImportError as ex:
             raise MissingOptionalLibraryError(
                 libname="qiskit-ignis",
                 name="execute",
                 pip_install="pip install qiskit-ignis",
             ) from ex
-        self._meas_fitter: dict[datetime, Union[CompleteMeasFitter, TensoredMeasFitter]] = {}
+        try:
+            from mthree import M3Mitigation
+        except ImportError as ex:
+            raise MissingOptionalLibraryError(
+                libname="mthree",
+                name="execute",
+                pip_install="pip install mthree",
+            ) from ex
+        self._meas_fitter: dict[
+            datetime, Union[CompleteMeasFitter, TensoredMeasFitter, M3Mitigation]
+        ] = {}
 
     @property
     def backend(self):
@@ -266,12 +271,14 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
         return data
 
     def _maybe_calibrate(self):
-        now = time()
+        now = datetime.now()
         if now <= self._time_threshold:
             return
+        logger.info("readout error mitigation calibration %s at %s", self._mitigation, now)
         if self._mitigation == "tensored":
             try:
                 from qiskit.ignis.mitigation.measurement import (
+                    TensoredMeasFitter,
                     tensored_meas_cal,
                 )
             except ImportError as ex:
@@ -281,9 +288,12 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
                     pip_install="pip install qiskit-ignis",
                 ) from ex
             meas_calibs, state_labels = tensored_meas_cal(**self._cal_options)
+            cal_results = self._backend.run_and_wait(meas_calibs, shots=self._shots)
+            self._meas_fitter[now] = TensoredMeasFitter(cal_results, **self._cal_options)
         elif self._mitigation == "complete":
             try:
                 from qiskit.ignis.mitigation.measurement import (
+                    CompleteMeasFitter,
                     complete_meas_cal,
                 )
             except ImportError as ex:
@@ -293,49 +303,42 @@ class ReadoutErrorMitigation(BaseBackendWrapper):
                     pip_install="pip install qiskit-ignis",
                 ) from ex
             meas_calibs, state_labels = complete_meas_cal(**self._cal_options)
-
-        logger.info("readout error mitigation calibration %s at %f", self._mitigation, now)
-        cal_results = self._backend.run_and_wait(meas_calibs, shots=self._shots)
-
-        dt = self._datetime(cal_results.date)
-        if self._mitigation == "tensored":
-            try:
-                from qiskit.ignis.mitigation.measurement import (
-                    TensoredMeasFitter,
-                )
-            except ImportError as ex:
-                raise MissingOptionalLibraryError(
-                    libname="qiskit-ignis",
-                    name="execute",
-                    pip_install="pip install qiskit-ignis",
-                ) from ex
-            self._meas_fitter[dt] = TensoredMeasFitter(cal_results, **self._cal_options)
-        elif self._mitigation == "complete":
-            try:
-                from qiskit.ignis.mitigation.measurement import (
-                    CompleteMeasFitter,
-                )
-            except ImportError as ex:
-                raise MissingOptionalLibraryError(
-                    libname="qiskit-ignis",
-                    name="execute",
-                    pip_install="pip install qiskit-ignis",
-                ) from ex
-            self._meas_fitter[dt] = CompleteMeasFitter(
+            cal_results = self._backend.run_and_wait(meas_calibs, shots=self._shots)
+            self._meas_fitter[now] = CompleteMeasFitter(
                 cal_results, state_labels, **self._cal_options
             )
+        elif self._mitigation == "mthree":
+            try:
+                from mthree import M3Mitigation
+            except ImportError as ex:
+                raise MissingOptionalLibraryError(
+                    libname="mthree",
+                    name="execute",
+                    pip_install="pip install mthree",
+                ) from ex
+            mit = M3Mitigation(self._backend.backend)
+            mit.cals_from_system(shots=self._shots, **self._cal_options)
+            self._meas_fitter[now] = mit
         self._time_threshold = now + self._refresh
 
-    def _apply_mitigation(self, result: Result):
+    def _apply_mitigation(self, result: Result) -> list[Counts]:
         result_dt = self._datetime(result.date)
         fitters = [
             (abs(date - result_dt), date, fitter) for date, fitter in self._meas_fitter.items()
         ]
         _, min_date, min_fitter = min(fitters, key=lambda e: e[0])
         logger.info("apply mitigation data at %s", min_date)
-        return min_fitter.filter.apply(result)
+        if self._mitigation in ["complete", "tensored"]:
+            return min_fitter.filter.apply(result).get_counts()
+        else:
+            counts = result.get_counts()
+            quasis = min_fitter.apply_correction(counts, self._cal_options["qubits"])
+            ret = []
+            for quasi, shots in zip(quasis, quasis.shots):
+                ret.append(Counts({key: val * shots for key, val in quasi.items()}))
+            return ret
 
-    def apply_mitigation(self, results: list[Result]):
+    def apply_mitigation(self, results: list[Result]) -> list[list[Counts]]:
         """
         TODO
         """
