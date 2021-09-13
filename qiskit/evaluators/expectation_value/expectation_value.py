@@ -15,7 +15,7 @@ Expectation value class
 from __future__ import annotations
 
 import sys
-from typing import Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Optional, Union, cast
 
 import numpy as np
 
@@ -38,6 +38,9 @@ from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
+
+if TYPE_CHECKING:
+    from typing import Any
 
 if sys.version_info >= (3, 8):
     from typing import Protocol
@@ -178,7 +181,7 @@ class ExpectationValue(BaseEvaluator):
             Union[
                 list[float],
                 list[list[float]],
-                np.ndarray[Any, np.dtype[np.float64]],
+                "np.ndarray[Any, np.dtype[np.float64]]",
             ]
         ] = None,
         had_transpiled=True,

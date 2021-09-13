@@ -53,6 +53,6 @@ class TestPauliExpectationValue(QiskitTestCase):
         expval.set_run_options(seed_simulator=15)
         result = expval.evaluate([0, 1, 1, 2, 3, 5])
         self.assertIsInstance(result.value, float)
-        self.assertAlmostEqual(result.value, 1.806640625)
+        self.assertAlmostEqual(result.value, 1.728515625)
         self.assertIsInstance(result.variance, float)
-        self.assertAlmostEqual(result.variance, 11.092403411865234)
+        self.assertAlmostEqual(result.variance, 10.991695404052734)

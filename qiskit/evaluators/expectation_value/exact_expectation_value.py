@@ -98,17 +98,27 @@ class ExactPreprocessing(BasePreprocessing):
     Preprocessing for :class:`ExactExpectationValue`.
     """
 
+    def __init__(
+        self,
+        backend: Backend,
+        transpile_options: Optional[dict] = None,
+    ):
+        if not has_aer():
+            raise MissingOptionalLibraryError(
+                libname="qiskit-aer",
+                name="Aer provider",
+                pip_install="pip install qiskit-aer",
+            )
+
+        super().__init__(backend, transpile_options)
+
     def execute(self, state: QuantumCircuit, observable: SparsePauliOp) -> list[QuantumCircuit]:
-        # circuit transpilation
-        transpiled_circuit: QuantumCircuit = cast(
-            QuantumCircuit, transpile(state, self._backend, **self._transpile_options.__dict__)
-        )  # TODO: option
-        # TODO: final layout
-
-        # TODO: need to check whether Aer exists or not
+        state_copy = state.copy()
         inst = SaveExpectationValueVariance(operator=observable)
-
-        transpiled_circuit.append(inst, qargs=range(transpiled_circuit.num_qubits))
+        state_copy.append(inst, qargs=range(state_copy.num_qubits))
+        transpiled_circuit = cast(
+            QuantumCircuit, transpile(state_copy, self._backend, **self._transpile_options.__dict__)
+        )
         return [transpiled_circuit]
 
 

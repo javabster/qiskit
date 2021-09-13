@@ -15,31 +15,38 @@ Expectation value gradient class
 
 from __future__ import annotations
 
-from typing import Any, Tuple, Union, cast
+from abc import ABC, abstractmethod
+from typing import Any, Tuple, Union
 
 import numpy as np
 
-from qiskit.evaluators.framework.base_evaluator import BaseEvaluator
-from qiskit.evaluators.results import ExpectationValueArrayResult
-from qiskit.evaluators.results.expectation_value_gradient_result import (
+#from qiskit.evaluators.framework.base_evaluator import BaseEvaluator
+from qiskit.evaluators.results import (
+    ExpectationValueArrayResult,
     ExpectationValueGradientResult,
 )
 
 from .expectation_value import ExpectationValue
 
 
-class BaseExpectationValueGradient(BaseEvaluator):
+class BaseExpectationValueGradient(ABC):  # (BaseEvaluator):
+    """
+    Base class for expectation value gradient
+    """
+
     def __init__(self, expval: ExpectationValue):
         self._expval = expval
 
+    @abstractmethod
     def _preprocessing(
-        self, parameters: np.ndarray[Any, np.dtype[np.float64]]
-    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        self, parameters: "np.ndarray[Any, np.dtype[np.float64]]"
+    ) -> "np.ndarray[Any, np.dtype[np.float64]]":
         return NotImplemented
 
+    @abstractmethod
     def _postprocessing(
         self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
-    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+    ) -> ExpectationValueGradientResult:
         return NotImplemented
 
     def evaluate(
@@ -47,13 +54,14 @@ class BaseExpectationValueGradient(BaseEvaluator):
         parameters: Union[list[float], list[list[float]], np.ndarray[Any, np.dtype[np.float64]]],
         **run_options,
     ) -> ExpectationValueGradientResult:
+        """TODO
+        """
         parameters = np.asarray(parameters, dtype=np.float64)
         if len(parameters.shape) not in [1, 2]:
             raise ValueError("parameters should be a 1D vector or 2D vectors")
         param_array = self._preprocessing(parameters)
         results = self._expval.evaluate(param_array, **run_options)
-        grad = self._postprocessing(results, parameters.shape)
-        return ExpectationValueGradientResult(values=grad)
+        return self._postprocessing(results, parameters.shape)
 
 
 class FiniteDiffGradient(BaseExpectationValueGradient):
@@ -62,12 +70,12 @@ class FiniteDiffGradient(BaseExpectationValueGradient):
     """
 
     def __init__(self, expval: ExpectationValue, epsilon: float):
-        super(FiniteDiffGradient, self).__init__(expval)
+        super().__init__(expval)
         self._epsilon = epsilon
 
     def _preprocessing(
-        self, parameters: np.ndarray[Any, np.dtype[np.float64]]
-    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        self, parameters: "np.ndarray[Any, np.dtype[np.float64]]"
+    ) -> "np.ndarray[Any, np.dtype[np.float64]]":
         if len(parameters.shape) == 1:
             parameters = parameters.reshape((1, parameters.shape[0]))
         dim = parameters.shape[-1]
@@ -82,7 +90,7 @@ class FiniteDiffGradient(BaseExpectationValueGradient):
 
     def _postprocessing(
         self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
-    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+    ) -> ExpectationValueGradientResult:
         dim = shape[-1]
         array = results.values.reshape((results.values.shape[0] // (dim + 1), dim + 1))
         ret = []
@@ -92,7 +100,8 @@ class FiniteDiffGradient(BaseExpectationValueGradient):
             for i, f_i in enumerate(values[1:]):
                 grad[i] = (f_i - f_ref) / self._epsilon
             ret.append(grad)
-        return np.array(ret).reshape(shape)
+        grad = np.array(ret).reshape(shape)
+        return ExpectationValueGradientResult(values=grad)
 
 
 class ParameterShiftGradient(BaseExpectationValueGradient):
@@ -101,12 +110,12 @@ class ParameterShiftGradient(BaseExpectationValueGradient):
     """
 
     def __init__(self, expval: ExpectationValue):
-        super(ParameterShiftGradient, self).__init__(expval)
+        super().__init__(expval)
         self._epsilon = np.pi / 2
 
     def _preprocessing(
-        self, parameters: np.ndarray[Any, np.dtype[np.float64]]
-    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+        self, parameters: "np.ndarray[Any, np.dtype[np.float64]]"
+    ) -> "np.ndarray[Any, np.dtype[np.float64]]":
         if len(parameters.shape) == 1:
             parameters = parameters.reshape((1, parameters.shape[0]))
         dim = parameters.shape[-1]
@@ -125,7 +134,7 @@ class ParameterShiftGradient(BaseExpectationValueGradient):
 
     def _postprocessing(
         self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
-    ) -> np.ndarray[Any, np.dtype[np.float64]]:
+    ) -> ExpectationValueGradientResult:
         dim = shape[-1]
         array = results.values.reshape((results.values.shape[0] // (2 * dim), 2 * dim))
         div = 2 * np.sin(self._epsilon)
@@ -137,4 +146,5 @@ class ParameterShiftGradient(BaseExpectationValueGradient):
                 f_minus = values[2 * i + 1]
                 grad[i] = (f_plus - f_minus) / div
             ret.append(grad)
-        return np.array(ret).reshape(shape)
+        grad = np.array(ret).reshape(shape)
+        return ExpectationValueGradientResult(values=grad)

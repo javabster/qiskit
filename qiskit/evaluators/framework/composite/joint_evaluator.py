@@ -16,7 +16,7 @@ Joint evaluator class
 from __future__ import annotations
 
 import copy
-from typing import Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Optional, Union, cast
 
 import numpy as np
 
@@ -25,6 +25,9 @@ from qiskit.evaluators.backends import ShotResult
 from qiskit.evaluators.framework.base_evaluator import BaseEvaluator
 from qiskit.evaluators.results import CompositeResult
 from qiskit.evaluators.results.base_result import BaseResult
+
+if TYPE_CHECKING:
+    from typing import Any
 
 
 class JointEvaluator(BaseEvaluator):
@@ -65,7 +68,7 @@ class JointEvaluator(BaseEvaluator):
             Union[
                 list[float],
                 list[list[float]],
-                np.ndarray[Any, np.dtype[np.float64]],
+                "np.ndarray[Any, np.dtype[np.float64]]",
             ]
         ] = None,
         had_transpiled=True,

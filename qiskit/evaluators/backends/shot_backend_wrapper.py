@@ -68,6 +68,9 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
 
     @staticmethod
     def is_aer(backend: BackendV1):
+        """
+        Returns True if the backend is a subclass of AerProvider.
+        """
         try:
             from qiskit.providers.aer import AerProvider
 
