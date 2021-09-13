@@ -59,6 +59,7 @@ class BaseEvaluator:
         backend: Union[Backend, BaseBackendWrapper],
         postprocessing: Postprocessing,
         transpile_options: Optional[dict] = None,
+        append: bool = False,
     ):
         """
         Args:
@@ -78,6 +79,9 @@ class BaseEvaluator:
         self._transpiled_circuits: Optional[list[QuantumCircuit]] = None
 
         self._postprocessing = postprocessing
+
+        self.append = append
+        self.history: list[BaseResult] = []
 
     @property
     def run_options(self) -> Options:
@@ -180,17 +184,29 @@ class BaseEvaluator:
 
         if parameters is None or isinstance(parameters, np.ndarray) and parameters.ndim == 1:
             if isinstance(results, Result):
-                return self._postprocessing(results.data(0))
-            return self._postprocessing(results)
-        if isinstance(results, Result):
-            postprocessed = [self._postprocessing(results.data(i)) for i in range(len(parameters))]
+                ret_result = self._postprocessing(results.data(0))
+            else:
+                ret_result = self._postprocessing(results)
         else:
-            postprocessed = [
-                self._postprocessing(
-                    results[
-                        i * len(self.transpiled_circuits) : (i + 1) * len(self.transpiled_circuits)
-                    ]
-                )
-                for i in range(len(parameters))
-            ]
-        return CompositeResult(postprocessed)
+
+            if isinstance(results, Result):
+                postprocessed = [
+                    self._postprocessing(results.data(i)) for i in range(len(parameters))
+                ]
+            else:
+                postprocessed = [
+                    self._postprocessing(
+                        results[
+                            i
+                            * len(self.transpiled_circuits) : (i + 1)
+                            * len(self.transpiled_circuits)
+                        ]
+                    )
+                    for i in range(len(parameters))
+                ]
+            ret_result = CompositeResult(postprocessed)
+
+        if self.append:
+            self.history.append(ret_result)
+
+        return ret_result

@@ -51,6 +51,7 @@ class PauliExpectationValue(ExpectationValue):
         observable: Union[BaseOperator, PauliSumOp],
         backend: Union[Backend, ShotBackendWrapper],
         transpile_options: Optional[dict] = None,
+        append: bool = False,
     ):
         super().__init__(
             PauliPreprocessing(
@@ -61,6 +62,7 @@ class PauliExpectationValue(ExpectationValue):
             state=state,
             observable=observable,
             backend=ShotBackendWrapper.from_backend(backend),
+            append=append,
         )
 
 

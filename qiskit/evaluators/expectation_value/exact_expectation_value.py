@@ -48,6 +48,7 @@ class ExactExpectationValue(ExpectationValue):
         observable: Union[BaseOperator, PauliSumOp],
         backend: Backend,
         transpile_options: Optional[dict] = None,
+        append: bool = False,
     ):
         self._preprocessing: BasePreprocessing
         if not has_aer():
@@ -63,6 +64,7 @@ class ExactExpectationValue(ExpectationValue):
             state=state,
             observable=observable,
             backend=backend,
+            append=append,
         )
 
     @property

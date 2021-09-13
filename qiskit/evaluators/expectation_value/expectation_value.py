@@ -74,9 +74,10 @@ class ExpectationValue(BaseEvaluator):
         state: Union[QuantumCircuit, Statevector],
         observable: Union[BaseOperator, PauliSumOp],
         backend: Union[Backend, BaseBackendWrapper, ShotBackendWrapper],
+        append: bool = False,
     ):
         """ """
-        super().__init__(backend, postprocessing)
+        super().__init__(backend=backend, postprocessing=postprocessing, append=append)
         self._preprocessing = preprocessing
         self._state = self._init_state(state)
         self._observable = self._init_observable(observable)
