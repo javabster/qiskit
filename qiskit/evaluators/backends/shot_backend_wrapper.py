@@ -203,9 +203,6 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
         for circs, shots in circs_shots:
             result = self._backend.run_and_wait(circs, shots=shots, **options)
             results.append(result)
-
-        if isinstance(self._backend, ReadoutErrorMitigation):
-            results = self._backend.apply_mitigation(results)
         if append:
             self._raw_results.extend(results)
         else:
@@ -230,10 +227,13 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
         """
         if len(results) == 0:
             raise QiskitError("Empty result")
+        if isinstance(self._backend, ReadoutErrorMitigation):
+            list_counts = self._backend.apply_mitigation(results)
+        else:
+            list_counts = [result.get_counts() for result in results]
         counters: list[Counter] = [Counter() for _ in range(self._num_circuits)]
         i = 0
-        for result in results:
-            counts = result.get_counts()
+        for counts in list_counts:
             if isinstance(counts, Counts):
                 counts = [counts]
             for count in counts:
