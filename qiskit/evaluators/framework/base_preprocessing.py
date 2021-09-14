@@ -15,10 +15,9 @@ Base Preprocessing class
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
+from typing import Union
 
 from qiskit import QuantumCircuit
-from qiskit.providers import BackendV1 as Backend
 from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp
 
@@ -30,36 +29,13 @@ class BasePreprocessing(ABC):
 
     _default_transpile_options = Options()
 
-    def __init__(
-        self,
-        backend: Backend,
-        transpile_options: Optional[dict] = None,
-    ):
-        self._backend = backend
-        self._transpile_options = self._default_transpile_options
-        if transpile_options is not None:
-            self.set_transpile_options(**transpile_options)
-
     def __call__(self, state: QuantumCircuit, observable: SparsePauliOp):
         return self.execute(state, observable)
 
-    @property
-    def transpile_options(self) -> Options:
-        """Return the transpiler options for transpiling the circuits."""
-        return self._transpile_options
-
-    def set_transpile_options(self, **fields) -> BasePreprocessing:
-        """Set the transpiler options for transpiler.
-        Args:
-            fields: The fields to update the options
-        Returns:
-            self
-        """
-        self._transpile_options.update_options(**fields)
-        return self
-
     @abstractmethod
-    def execute(self, state: QuantumCircuit, observable: SparsePauliOp) -> list[QuantumCircuit]:
+    def execute(
+        self, state: QuantumCircuit, observable: SparsePauliOp
+    ) -> Union[list[QuantumCircuit], tuple[QuantumCircuit, list[QuantumCircuit]]]:
         """
         TODO
         """

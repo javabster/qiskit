@@ -15,18 +15,13 @@ Expectation value class
 
 from __future__ import annotations
 
-import copy
 import logging
-from typing import Optional, Union, cast
+from typing import Optional, Union
 
 import numpy as np
 
-from qiskit import ClassicalRegister, QuantumCircuit, transpile
-from qiskit.evaluators.backends import (
-    BackendWrapper,
-    ShotBackendWrapper,
-    ShotResult,
-)
+from qiskit import QuantumCircuit
+from qiskit.evaluators.backends import ShotBackendWrapper, ShotResult
 from qiskit.evaluators.framework import BasePostprocessing, BasePreprocessing
 from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.opflow import PauliSumOp
@@ -50,14 +45,10 @@ class PauliExpectationValue(ExpectationValue):
         state: Union[QuantumCircuit, Statevector],
         observable: Union[BaseOperator, PauliSumOp],
         backend: Union[Backend, ShotBackendWrapper],
-        transpile_options: Optional[dict] = None,
         append: bool = False,
     ):
         super().__init__(
-            PauliPreprocessing(
-                BackendWrapper.to_backend(backend),
-                transpile_options,
-            ),
+            PauliPreprocessing(),
             PauliPostprocessing(),
             state=state,
             observable=observable,
@@ -71,58 +62,27 @@ class PauliPreprocessing(BasePreprocessing):
     Preprocessing for evaluation of expectation value using pauli rotation gates.
     """
 
-    def execute(self, state: QuantumCircuit, observable: SparsePauliOp) -> list[QuantumCircuit]:
+    def execute(
+        self, state: QuantumCircuit, observable: SparsePauliOp
+    ) -> Union[list[QuantumCircuit], tuple[QuantumCircuit, list[QuantumCircuit]]]:
         """
         TODO
         """
 
-        # 1. transpile a common circuit
-        transpiled_state = state.copy()
-        transpiled_state.measure_all()
-        transpiled_state = cast(
-            QuantumCircuit,
-            transpile(transpiled_state, self._backend, **self.transpile_options.__dict__),
-        )
-        bit_map = {bit: index for index, bit in enumerate(transpiled_state.qubits)}
-        layout = [bit_map[qr[0]] for _, qr, _ in transpiled_state[-state.num_qubits :]]
-        transpiled_state.remove_final_measurements()
-
-        # 2. transpile diff circuits
         diff_circuits: list[QuantumCircuit] = []
-        creg = ClassicalRegister(observable.num_qubits)
         for pauli, coeff in observable.label_iter():
-            circuit = state.copy()
-            circuit.add_register(creg)
+            circuit = QuantumCircuit(state.num_qubits, observable.num_qubits)
             for i, val in enumerate(reversed(pauli)):
                 if val == "Y":
                     circuit.sdg(i)
                 if val in ["Y", "X"]:
                     circuit.h(i)
                 circuit.measure(i, i)
-            del circuit.data[0 : len(state)]
             coeff = coeff.real.item() if np.isreal(coeff) else coeff.item()
             circuit.metadata = {"basis": pauli, "coeff": coeff}
             diff_circuits.append(circuit)
 
-        transpile_opts = copy.copy(self.transpile_options)
-        transpile_opts.update_options(initial_layout=layout)
-        diff_circuits = cast(
-            list[QuantumCircuit], transpile(diff_circuits, self._backend, **transpile_opts.__dict__)
-        )
-
-        # 3. combine
-        transpiled_circuits = []
-        for diff_circuit in diff_circuits:
-            transpiled_circuit = transpiled_state.copy()
-            for creg in diff_circuit.cregs:
-                if creg not in transpiled_circuit.cregs:
-                    transpiled_circuit.add_register(creg)
-            for inst, qargs, cargs in diff_circuit.data:
-                transpiled_circuit.append(inst, qargs, cargs)
-            transpiled_circuit.metadata = diff_circuit.metadata
-            transpiled_circuits.append(transpiled_circuit)
-
-        return transpiled_circuits
+        return state.copy(), diff_circuits
 
 
 class PauliPostprocessing(BasePostprocessing):

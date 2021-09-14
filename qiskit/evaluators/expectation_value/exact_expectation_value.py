@@ -17,16 +17,15 @@ Expectation value class
 
 from __future__ import annotations
 
-from typing import Optional, Union, cast
+from typing import Union
 
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit
 from qiskit.evaluators.backends import ShotResult
 from qiskit.evaluators.framework import BasePostprocessing, BasePreprocessing
 from qiskit.evaluators.results import ExpectationValueResult
 from qiskit.exceptions import MissingOptionalLibraryError
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
-from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 from qiskit.utils import has_aer
@@ -39,7 +38,7 @@ if has_aer():
 
 class ExactExpectationValue(ExpectationValue):
     """
-    Calculates exact expectation value exactly (without sampling error).
+    Calculates the expectation value exactly (i.e. without sampling error).
     """
 
     def __init__(
@@ -47,10 +46,8 @@ class ExactExpectationValue(ExpectationValue):
         state: Union[QuantumCircuit, Statevector],
         observable: Union[BaseOperator, PauliSumOp],
         backend: Backend,
-        transpile_options: Optional[dict] = None,
         append: bool = False,
     ):
-        self._preprocessing: BasePreprocessing
         if not has_aer():
             raise MissingOptionalLibraryError(
                 libname="qiskit-aer",
@@ -59,7 +56,7 @@ class ExactExpectationValue(ExpectationValue):
             )
 
         super().__init__(
-            ExactPreprocessing(backend=backend, transpile_options=transpile_options),
+            ExactPreprocessing(),
             ExactPostprocessing(),
             state=state,
             observable=observable,
@@ -67,61 +64,17 @@ class ExactExpectationValue(ExpectationValue):
             append=append,
         )
 
-    @property
-    def transpile_options(self) -> Options:
-        """
-        Options for transpile
-
-        Returns:
-            transpile options
-        Raises:
-            QiskitError: if preprocessing is not BasePreprocessing
-        """
-        return self._preprocessing.transpile_options
-
-    def set_transpile_options(self, **fields) -> ExpectationValue:
-        """Set the transpiler options for transpiler.
-
-        Args:
-            fields: The fields to update the options
-        Returns:
-            self
-        Raises:
-            QiskitError: if preprocessing is not BasePreprocessing
-        """
-        self._transpiled_circuits = None
-        self._metadata = None
-        self._preprocessing.set_transpile_options(**fields)
-        return self
-
 
 class ExactPreprocessing(BasePreprocessing):
     """
     Preprocessing for :class:`ExactExpectationValue`.
     """
 
-    def __init__(
-        self,
-        backend: Backend,
-        transpile_options: Optional[dict] = None,
-    ):
-        if not has_aer():
-            raise MissingOptionalLibraryError(
-                libname="qiskit-aer",
-                name="Aer provider",
-                pip_install="pip install qiskit-aer",
-            )
-
-        super().__init__(backend, transpile_options)
-
     def execute(self, state: QuantumCircuit, observable: SparsePauliOp) -> list[QuantumCircuit]:
         state_copy = state.copy()
         inst = SaveExpectationValueVariance(operator=observable)
         state_copy.append(inst, qargs=range(state_copy.num_qubits))
-        transpiled_circuit = cast(
-            QuantumCircuit, transpile(state_copy, self._backend, **self._transpile_options.__dict__)
-        )
-        return [transpiled_circuit]
+        return [state_copy]
 
 
 class ExactPostprocessing(BasePostprocessing):
@@ -134,9 +87,4 @@ class ExactPostprocessing(BasePostprocessing):
         # TODO: validate
 
         expval, variance = result["expectation_value_variance"]
-
-        return ExpectationValueResult(
-            expval,
-            variance,
-            None,
-        )
+        return ExpectationValueResult(expval, variance, None)

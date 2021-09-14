@@ -25,7 +25,11 @@ from qiskit.exceptions import MissingOptionalLibraryError, QiskitError
 from qiskit.providers.backend import BackendV1
 from qiskit.result import Counts, Result
 
-from .backend_wrapper import BackendWrapper, BaseBackendWrapper, ReadoutErrorMitigation
+from .backend_wrapper import (
+    BackendWrapper,
+    BaseBackendWrapper,
+    ReadoutErrorMitigation,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +61,7 @@ class ShotBackendWrapper(BaseBackendWrapper[ShotResult]):
             self._max_experiments = config.max_experiments
         else:
             self._max_experiments = 1 if self.is_aer(self._backend.backend) else 1_000_000
-            logger.warning(
+            logger.info(
                 "no max_experiments for backend '%s'. Set %d as max_experiments.",
                 self._backend.backend.name(),
                 self._max_experiments,

@@ -26,7 +26,7 @@ from qiskit.evaluators.backends import (
     ShotBackendWrapper,
     ShotResult,
 )
-from qiskit.evaluators.framework import BaseEvaluator, BasePreprocessing
+from qiskit.evaluators.framework import BaseEvaluator
 from qiskit.evaluators.results import (
     CompositeResult,
     ExpectationValueArrayResult,
@@ -35,7 +35,6 @@ from qiskit.evaluators.results import (
 from qiskit.extensions import Initialize
 from qiskit.opflow import PauliSumOp
 from qiskit.providers import BackendV1 as Backend
-from qiskit.providers import Options
 from qiskit.quantum_info import SparsePauliOp, Statevector
 from qiskit.quantum_info.operators.base_operator import BaseOperator
 
@@ -111,18 +110,6 @@ class ExpectationValue(BaseEvaluator):
         self._transpiled_circuits = None
         self._observable = self._init_observable(observable)
 
-    @property
-    def transpile_options(self) -> Options:
-        """
-        Options for transpile
-
-        Returns:
-            transpile options
-        """
-        if isinstance(self._preprocessing, BasePreprocessing):
-            return self._preprocessing.transpile_options
-        return super().transpile_options
-
     def set_transpile_options(self, **fields) -> ExpectationValue:
         """Set the transpiler options for transpiler.
 
@@ -132,23 +119,20 @@ class ExpectationValue(BaseEvaluator):
             self
         """
         self._transpiled_circuits = None
-        if isinstance(self._preprocessing, BasePreprocessing):
-            self._preprocessing.set_transpile_options(**fields)
-        else:
-            super().set_transpile_options(**fields)
+        super().set_transpile_options(**fields)
         return self
 
     @property
-    def transpiled_circuits(self) -> list[QuantumCircuit]:
+    def preprocessed_circuits(self) -> list[QuantumCircuit]:
         """
         Transpiled quantum circuits produced by preprocessing
 
         Returns:
             List of the transpiled quantum circuit
         """
-        if self._transpiled_circuits is None:
-            self._transpiled_circuits = self._preprocessing(self.state, self.observable)
-        return super().transpiled_circuits
+        if self._preprocessed_circuits is None:
+            self._preprocessed_circuits = self._preprocessing(self.state, self.observable)
+        return super().preprocessed_circuits
 
     @staticmethod
     def _init_state(state: Union[QuantumCircuit, Statevector]) -> QuantumCircuit:
@@ -185,10 +169,9 @@ class ExpectationValue(BaseEvaluator):
                 "np.ndarray[Any, np.dtype[np.float64]]",
             ]
         ] = None,
-        had_transpiled=True,
         **run_options,
     ) -> Union[ExpectationValueResult, ExpectationValueArrayResult]:
-        res = super().evaluate(parameters, had_transpiled, **run_options)
+        res = super().evaluate(parameters, **run_options)
         if isinstance(res, CompositeResult):
             # TODO CompositeResult should be Generic
             values = np.array([r.value for r in res.items])  # type: ignore

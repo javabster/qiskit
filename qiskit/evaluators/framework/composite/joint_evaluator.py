@@ -16,11 +16,10 @@ Joint evaluator class
 from __future__ import annotations
 
 import copy
-from typing import TYPE_CHECKING, Optional, Union, cast
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 
-from qiskit import QuantumCircuit, transpile
 from qiskit.evaluators.backends import ShotResult
 from qiskit.evaluators.framework.base_evaluator import BaseEvaluator
 from qiskit.evaluators.results import CompositeResult
@@ -71,7 +70,6 @@ class JointEvaluator(BaseEvaluator):
                 "np.ndarray[Any, np.dtype[np.float64]]",
             ]
         ] = None,
-        had_transpiled=True,
         **run_options,
     ) -> CompositeResult:
         run_opts = copy.copy(self.run_options)
@@ -99,19 +97,13 @@ class JointEvaluator(BaseEvaluator):
                     for circ in evaluator.transpiled_circuits
                 ]
 
-        if not had_transpiled:
-            transpile_opts_dict = self.transpile_options.__dict__
-            circuits = cast(
-                list[QuantumCircuit], transpile(circuits, self.backend, **transpile_opts_dict)
-            )
-
         results = self._backend.run_and_wait(circuits, **run_opts_dict)
 
         accum = 0
         postprocessed = []
         for evaluator in self._evaluators:
             postprocessed.append(
-                self._postprocessing(results[accum : accum + len(evaluator.transpiled_circuits)])
+                self._postprocessing(results[accum : accum + len(evaluator.preprocessed_circuits)])
             )
 
         return CompositeResult(postprocessed)
