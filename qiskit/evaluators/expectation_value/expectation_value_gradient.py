@@ -16,52 +16,85 @@ Expectation value gradient class
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Tuple, Union
+from typing import Any, Optional, Union, cast
 
 import numpy as np
 
-#from qiskit.evaluators.framework.base_evaluator import BaseEvaluator
+from qiskit import QuantumCircuit
+from qiskit.evaluators.framework.base_evaluator import BaseEvaluator
 from qiskit.evaluators.results import (
-    ExpectationValueArrayResult,
+    CompositeResult,
     ExpectationValueGradientResult,
 )
 
 from .expectation_value import ExpectationValue
 
 
-class BaseExpectationValueGradient(ABC):  # (BaseEvaluator):
+class BaseExpectationValueGradient(BaseEvaluator, ABC):
     """
     Base class for expectation value gradient
     """
 
-    def __init__(self, expval: ExpectationValue):
-        self._expval = expval
+    def __init__(
+        self,
+        expectation_value: ExpectationValue,
+        append: bool = False,
+    ):
+        self._expectation_value = expectation_value
+        super().__init__(
+            backend=self._expectation_value._backend,
+            postprocessing=self._expectation_value._postprocessing,
+            transpile_options=self._expectation_value.transpile_options.__dict__,
+            append=append,
+        )
+
+    @property
+    def preprocessed_circuits(self) -> list[QuantumCircuit]:
+        """
+        Preprocessed quantum circuits produced by preprocessing
+
+        Returns:
+            List of the transpiled quantum circuit
+        """
+        return self._expectation_value.preprocessed_circuits
+
+    @property
+    def transpiled_circuits(self) -> list[QuantumCircuit]:
+        """
+        Transpiled quantum circuits.
+
+        Returns:
+            List of the transpiled quantum circuit
+        """
+        return self._expectation_value.transpiled_circuits
 
     @abstractmethod
-    def _preprocessing(
+    def _eval_parameters(
         self, parameters: "np.ndarray[Any, np.dtype[np.float64]]"
     ) -> "np.ndarray[Any, np.dtype[np.float64]]":
         return NotImplemented
 
     @abstractmethod
-    def _postprocessing(
-        self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
-    ) -> ExpectationValueGradientResult:
+    def _compute_gradient(self, results: CompositeResult, shape) -> ExpectationValueGradientResult:
         return NotImplemented
 
     def evaluate(
         self,
-        parameters: Union[list[float], list[list[float]], np.ndarray[Any, np.dtype[np.float64]]],
+        parameters: Optional[
+            Union[list[float], list[list[float]], np.ndarray[Any, np.dtype[np.float64]]]
+        ] = None,
         **run_options,
     ) -> ExpectationValueGradientResult:
-        """TODO
-        """
+        """TODO"""
+        if parameters is None:
+            raise ValueError()
+
         parameters = np.asarray(parameters, dtype=np.float64)
         if len(parameters.shape) not in [1, 2]:
             raise ValueError("parameters should be a 1D vector or 2D vectors")
-        param_array = self._preprocessing(parameters)
-        results = self._expval.evaluate(param_array, **run_options)
-        return self._postprocessing(results, parameters.shape)
+        param_array = self._eval_parameters(parameters)
+        results = cast(CompositeResult, super().evaluate(param_array, **run_options))
+        return self._compute_gradient(results, parameters.shape)
 
 
 class FiniteDiffGradient(BaseExpectationValueGradient):
@@ -69,11 +102,11 @@ class FiniteDiffGradient(BaseExpectationValueGradient):
     Finite difference of expectation values
     """
 
-    def __init__(self, expval: ExpectationValue, epsilon: float):
-        super().__init__(expval)
+    def __init__(self, expectation_value: ExpectationValue, epsilon: float):
+        super().__init__(expectation_value)
         self._epsilon = epsilon
 
-    def _preprocessing(
+    def _eval_parameters(
         self, parameters: "np.ndarray[Any, np.dtype[np.float64]]"
     ) -> "np.ndarray[Any, np.dtype[np.float64]]":
         if len(parameters.shape) == 1:
@@ -88,11 +121,10 @@ class FiniteDiffGradient(BaseExpectationValueGradient):
                 ret.append(ei)
         return np.array(ret)
 
-    def _postprocessing(
-        self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
-    ) -> ExpectationValueGradientResult:
+    def _compute_gradient(self, results: CompositeResult, shape) -> ExpectationValueGradientResult:
+        values = np.array([r.value for r in results.items])  # type: ignore
         dim = shape[-1]
-        array = results.values.reshape((results.values.shape[0] // (dim + 1), dim + 1))
+        array = values.reshape((values.shape[0] // (dim + 1), dim + 1))
         ret = []
         for values in array:
             grad = np.zeros(dim)
@@ -109,11 +141,11 @@ class ParameterShiftGradient(BaseExpectationValueGradient):
     Gradient of expectation values by parameter shift
     """
 
-    def __init__(self, expval: ExpectationValue):
-        super().__init__(expval)
+    def __init__(self, expectation_value: ExpectationValue):
+        super().__init__(expectation_value)
         self._epsilon = np.pi / 2
 
-    def _preprocessing(
+    def _eval_parameters(
         self, parameters: "np.ndarray[Any, np.dtype[np.float64]]"
     ) -> "np.ndarray[Any, np.dtype[np.float64]]":
         if len(parameters.shape) == 1:
@@ -132,11 +164,10 @@ class ParameterShiftGradient(BaseExpectationValueGradient):
 
         return np.array(ret)
 
-    def _postprocessing(
-        self, results: ExpectationValueArrayResult, shape: Union[Tuple[int], Tuple[int, int]]
-    ) -> ExpectationValueGradientResult:
+    def _compute_gradient(self, results: CompositeResult, shape) -> ExpectationValueGradientResult:
+        values = np.array([r.value for r in results.items])  # type: ignore
         dim = shape[-1]
-        array = results.values.reshape((results.values.shape[0] // (2 * dim), 2 * dim))
+        array = values.reshape((values.shape[0] // (2 * dim), 2 * dim))
         div = 2 * np.sin(self._epsilon)
         ret = []
         for values in array:
