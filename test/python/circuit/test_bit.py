@@ -20,30 +20,41 @@ from qiskit.test import QiskitTestCase
 from qiskit.circuit import bit, QuantumRegister
 
 
-class TestNewStyleBit(QiskitTestCase):
-    """Test behavior of new-style bits."""
+class TestBitClass(QiskitTestCase):
+    """Test library of boolean logic quantum circuits."""
 
-    def test_bits_do_not_require_registers(self):
-        """Verify we can create a bit outside the context of a register."""
-        self.assertIsInstance(bit.Bit(), bit.Bit)
+    def test_bit_eq_invalid_type_comparison(self):
+        orig_reg = mock.MagicMock()
+        orig_reg.size = 3
+        test_bit = bit.Bit(orig_reg, 0)
+        self.assertNotEqual(test_bit, 3.14)
 
-    def test_newstyle_bit_equality(self):
-        """Verify bits instances are equal only to themselves."""
-        bit1 = bit.Bit()
-        bit2 = bit.Bit()
+    def test_old_style_bit_equality(self):
+        test_reg = mock.MagicMock(size=3, name="foo")
+        test_reg.__str__.return_value = "Register(3, 'foo')"
 
-        self.assertEqual(bit1, bit1)
-        self.assertNotEqual(bit1, bit2)
-        self.assertNotEqual(bit1, 3.14)
+        self.assertEqual(bit.Bit(test_reg, 0), bit.Bit(test_reg, 0))
+        self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(test_reg, 2))
 
-    def test_bit_register_backreferences_deprecated(self):
-        """Verify we raise a deprecation warning for register back-references."""
+        reg_copy = mock.MagicMock(size=3, name="foo")
+        reg_copy.__str__.return_value = "Register(3, 'foo')"
 
-        qr = QuantumRegister(3, "test_qr")
-        qubit = qr[0]
+        self.assertEqual(bit.Bit(test_reg, 0), bit.Bit(reg_copy, 0))
+        self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_copy, 1))
 
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = qubit.index
+        reg_larger = mock.MagicMock(size=4, name="foo")
+        reg_larger.__str__.return_value = "Register(4, 'foo')"
 
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = qubit.register
+        self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_larger, 0))
+
+        reg_renamed = mock.MagicMock(size=3, name="bar")
+        reg_renamed.__str__.return_value = "Register(3, 'bar')"
+
+        self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_renamed, 0))
+
+        reg_difftype = mock.MagicMock(size=3, name="bar")
+        reg_difftype.__str__.return_value = "QuantumRegister(3, 'bar')"
+
+        self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_difftype, 0))
+
+
