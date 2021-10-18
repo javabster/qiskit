@@ -58,30 +58,3 @@ class TestBitClass(QiskitTestCase):
         self.assertNotEqual(bit.Bit(test_reg, 0), bit.Bit(reg_difftype, 0))
 
 
-class TestNewStyleBit(QiskitTestCase):
-    """Test behavior of new-style bits."""
-
-    def test_bits_do_not_require_registers(self):
-        """Verify we can create a bit outside the context of a register."""
-        self.assertIsInstance(bit.Bit(), bit.Bit)
-
-    def test_newstyle_bit_equality(self):
-        """Verify bits instances are equal only to themselves."""
-        bit1 = bit.Bit()
-        bit2 = bit.Bit()
-
-        self.assertEqual(bit1, bit1)
-        self.assertNotEqual(bit1, bit2)
-        self.assertNotEqual(bit1, 3.14)
-
-    def test_bit_register_backreferences_deprecated(self):
-        """Verify we raise a deprecation warning for register back-references."""
-
-        qr = QuantumRegister(3, "test_qr")
-        qubit = qr[0]
-
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = qubit.index
-
-        with self.assertWarnsRegex(DeprecationWarning, "deprecated"):
-            _ = qubit.register
