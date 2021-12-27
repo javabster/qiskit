@@ -64,6 +64,7 @@ Standard Gates
    RZGate
    RZZGate
    RZXGate
+   XYGate
    ECRGate
    SGate
    SdgGate
@@ -187,6 +188,15 @@ Functions on binary variables
 
    QuadraticForm
 
+Other arithmetic functions
+--------------------------
+
+.. autosummary::
+   :toctree: ../stubs/
+   :template: autosummary/class_no_inherited_members.rst
+
+   ExactReciprocal
+
 Amplitude Functions
 ===================
 
@@ -212,6 +222,8 @@ Particular Quantum Circuits
    GroverOperator
    PhaseOracle
    EvolvedOperatorAnsatz
+   PauliEvolutionGate
+
 
 Probability distributions
 =========================
@@ -367,6 +379,7 @@ from .generalized_gates import (
     RVGate,
     PauliGate,
 )
+from .pauli_evolution import PauliEvolutionGate
 from .boolean_logic import (
     AND,
     OR,
@@ -390,6 +403,7 @@ from .arithmetic import (
     PiecewiseChebyshev,
     HRSCumulativeMultiplier,
     RGQFTMultiplier,
+    ExactReciprocal,
 )
 
 from .n_local import (
